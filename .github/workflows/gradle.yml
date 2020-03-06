@@ -19,3 +19,11 @@ jobs:
       run: ./gradlew test
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Deploy to AWS
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws_region: us-east-1
+        function_name: mparticle_iterable_firehose_test
+        zip_file: iterable-extension/build/distributions/iterable-extension.zip
+      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_iterable_firehose_test --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip
