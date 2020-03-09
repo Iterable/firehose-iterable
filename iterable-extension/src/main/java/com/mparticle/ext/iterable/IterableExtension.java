@@ -24,6 +24,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String SETTING_APNS_KEY = "apnsProdIntegrationName";
     public static final String SETTING_APNS_SANDBOX_KEY = "apnsSandboxIntegrationName";
     public static final String SETTING_LIST_ID = "listId";
+    public static final String SETTING_COERCE_STRINGS_TO_SCALARS = "coerceStringsToScalars";
     IterableService iterableService;
 
     @Override
@@ -232,7 +233,7 @@ public class IterableExtension extends MessageProcessor {
                 }
             }
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
-                userUpdateRequest.dataFields = request.getUserAttributes();
+                userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
                 if (response.isSuccessful()) {
                     IterableApiResponse apiResponse = response.body();
@@ -242,6 +243,30 @@ public class IterableExtension extends MessageProcessor {
                 }
             }
         }
+    }
+
+    private Map<String, Object> convertAttributes(Map<String, String> attributes, boolean coerceStringsToScalars) {
+        if (attributes == null) {
+            return null;
+        }
+        
+        if (coerceStringsToScalars) {
+            return attemptTypeConversion(attributes);
+        } else {
+            Map<String, Object> mapObj = new HashMap<String, Object>();
+            mapObj.putAll(attributes);
+
+            return mapObj;
+        }
+    }
+
+    private static boolean shouldCoerceStrings(EventProcessingRequest request) {
+        String settingValue = request.getAccount().getAccountSettings().get(SETTING_COERCE_STRINGS_TO_SCALARS);
+        
+        if (settingValue == null) { 
+            return false;
+        }
+        return Boolean.parseBoolean(settingValue);
     }
 
     private static boolean isEmpty(CharSequence chars) {
@@ -264,12 +289,13 @@ public class IterableExtension extends MessageProcessor {
                     }
                 }
             }
-            apiUser.dataFields = event.getRequest().getUserAttributes();
+            boolean shouldCoerceStrings = shouldCoerceStrings(event.getRequest());
+            apiUser.dataFields = convertAttributes(event.getRequest().getUserAttributes(), shouldCoerceStrings);
             purchaseRequest.user = apiUser;
             purchaseRequest.total = event.getTotalAmount();
             if (event.getProducts() != null) {
                 purchaseRequest.items = event.getProducts().stream()
-                        .map(p -> convertToCommerceItem(p))
+                        .map(p -> convertToCommerceItem(p, shouldCoerceStrings))
                         .collect(Collectors.toList());
             }
 
@@ -282,9 +308,9 @@ public class IterableExtension extends MessageProcessor {
         }
     }
 
-    CommerceItem convertToCommerceItem(Product product) {
+    CommerceItem convertToCommerceItem(Product product, boolean shouldCoerceStrings) {
         CommerceItem item = new CommerceItem();
-        item.dataFields = product.getAttributes();
+        item.dataFields = convertAttributes(product.getAttributes(), shouldCoerceStrings);
         //iterable requires ID, and they also take SKU. mParticle doesn't differentiate
         //between sku and id. so, use our sku/id for both in Iterable:
         item.id = item.sku = product.getId();
@@ -385,7 +411,7 @@ public class IterableExtension extends MessageProcessor {
 
     @Override
     public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
-        ModuleRegistrationResponse response = new ModuleRegistrationResponse(NAME, "1.5.1");
+        ModuleRegistrationResponse response = new ModuleRegistrationResponse(NAME, "1.6.0");
 
         Permissions permissions = new Permissions();
         permissions.setUserIdentities(
@@ -443,6 +469,11 @@ public class IterableExtension extends MessageProcessor {
                 new TextSetting(SETTING_APNS_KEY, "APNS Production Integration Name")
                         .setIsRequired(false)
                         .setDescription("APNS Production integration name set up in the Mobile Push section of your Iterable account.")
+        );
+        eventSettings.add(
+                new BooleanSetting(SETTING_COERCE_STRINGS_TO_SCALARS, "Coerce Strings to Scalars")
+                        .setIsChecked(true)
+                        .setDescription("If enabled, mParticle will attempt to coerce string attributes into scalar types (integer, boolean, and float).")
         );
         eventProcessingRegistration.setAccountSettings(eventSettings);
 

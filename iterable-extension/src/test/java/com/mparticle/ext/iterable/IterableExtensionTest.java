@@ -11,7 +11,6 @@ import com.mparticle.sdk.model.registration.Setting;
 import com.mparticle.sdk.model.registration.UserIdentityPermission;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -21,7 +20,9 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static com.mparticle.ext.iterable.IterableExtension.SETTING_API_KEY;
+import static com.mparticle.ext.iterable.IterableExtension.SETTING_COERCE_STRINGS_TO_SCALARS;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.times;
 
 public class IterableExtensionTest {
 
@@ -117,6 +118,68 @@ public class IterableExtensionTest {
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
 
+    }
+
+    @org.junit.Test
+    public void testUserAttributeTypeConversion() throws Exception {
+        IterableExtension extension = new IterableExtension();
+        extension.iterableService = Mockito.mock(IterableService.class);
+
+        Call callMock = Mockito.mock(Call.class);
+        Mockito.when(extension.iterableService.userUpdate(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+
+        IterableApiResponse apiResponse = new IterableApiResponse();
+        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
+        Response<IterableApiResponse> response = Response.success(apiResponse);
+        Mockito.when(callMock.execute()).thenReturn(response);
+
+        EventProcessingRequest request = new EventProcessingRequest();
+        Account account = new Account();
+        Map<String, String> settings = new HashMap<>();
+        settings.put(SETTING_API_KEY, "foo api key");
+        account.setAccountSettings(settings);
+        request.setAccount(account);
+        
+        List<UserIdentity> identities = new LinkedList<>();
+        identities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
+        request.setUserIdentities(identities);
+        
+        Map<String, String> userAttributes = new HashMap<>();
+        userAttributes.put("test_bool", "True");
+        userAttributes.put("test_int", "123");
+        userAttributes.put("test_float", "1.5");
+        request.setUserAttributes(userAttributes);
+        
+        settings.put(SETTING_COERCE_STRINGS_TO_SCALARS, "True");
+        extension.updateUser(request);
+        
+        settings.put(SETTING_COERCE_STRINGS_TO_SCALARS, "False");
+        extension.updateUser(request);
+
+        settings.remove(SETTING_COERCE_STRINGS_TO_SCALARS);
+        extension.updateUser(request);
+
+        ArgumentCaptor<UserUpdateRequest> argument = ArgumentCaptor.forClass(UserUpdateRequest.class);
+        ArgumentCaptor<String> apiArg = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(extension.iterableService, times(3)).userUpdate(apiArg.capture(), argument.capture());
+
+        List<UserUpdateRequest> actualRequests = argument.getAllValues();
+
+        // SETTING_COERCE_STRINGS_TO_SCALARS == True
+        assertEquals(true, actualRequests.get(0).dataFields.get("test_bool"));
+        assertEquals(123, actualRequests.get(0).dataFields.get("test_int"));
+        assertEquals(1.5, actualRequests.get(0).dataFields.get("test_float"));
+
+        // SETTING_COERCE_STRINGS_TO_SCALARS == False
+        assertEquals("True", actualRequests.get(1).dataFields.get("test_bool"));
+        assertEquals("123", actualRequests.get(1).dataFields.get("test_int"));
+        assertEquals("1.5", actualRequests.get(1).dataFields.get("test_float"));
+
+        // SETTING_COERCE_STRINGS_TO_SCALARS not set
+        assertEquals("True", actualRequests.get(2).dataFields.get("test_bool"));
+        assertEquals("123", actualRequests.get(2).dataFields.get("test_int"));
+        assertEquals("1.5", actualRequests.get(2).dataFields.get("test_float"));
     }
 
     @org.junit.Test
@@ -469,15 +532,22 @@ public class IterableExtensionTest {
         product.setCategory("some category");
         Map<String, String> attributes = new HashMap<>();
         attributes.put("a key", "a value");
+        attributes.put("an int key", "123");
         product.setAttributes(attributes);
         product.setQuantity(new BigDecimal(1.4));
-        CommerceItem item = new IterableExtension().convertToCommerceItem(product);
+        CommerceItem item = new IterableExtension().convertToCommerceItem(product, true);
         assertEquals("some id", item.id);
         assertEquals("some id", item.sku);
         assertEquals("some name", item.name);
         assertEquals("some category", item.categories.get(0));
         assertEquals("a value", item.dataFields.get("a key"));
+        assertEquals(123, item.dataFields.get("an int key"));
         assertEquals((Integer) new BigDecimal(1.4).intValue(), item.quantity);
+
+        item = new IterableExtension().convertToCommerceItem(product, false);
+        assertEquals("123", item.dataFields.get("an int key"));
+
+
     }
 
     @org.junit.Test

@@ -14,6 +14,6 @@ public class CommerceItem {
     //iterable will error if this is not present
     public Integer quantity = 1;
     public String imageUrl;
-    public Map<String, String> dataFields;
+    public Map<String, Object> dataFields;
 
 }

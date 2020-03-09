@@ -81,7 +81,7 @@ public class IterableServiceTest {
         pushOpenRequest.userId = TEST_USER_ID;
         pushOpenRequest.campaignId = 17703; //this correlates to the "Test Campaign" set up in Iterable
 	pushOpenRequest.messageId= "eac02374a90d46a2901cea2f52edbd70"; // This needs to be a valid messageId in the project you're testing.
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, Object> attributes = new HashMap<String, Object>();
         attributes.put("test push open attribute key", "test push open attribute value");
         pushOpenRequest.dataFields = attributes;
         Response<IterableApiResponse> response = iterableService.trackPushOpen(ITERABLE_API_KEY, pushOpenRequest).execute();
@@ -94,8 +94,11 @@ public class IterableServiceTest {
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest();
         userUpdateRequest.userId = TEST_USER_ID;
         userUpdateRequest.email = TEST_EMAIL;
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put("test attribute key", "test attribute value");
+        Map<String, Object> attributes = new HashMap<String, Object>();
+        attributes.put("test string key", "test attribute string value");
+        attributes.put("test boolean key", true);
+        attributes.put("test int key", 1234);
+        attributes.put("test double key", 1234.56D);
 
         userUpdateRequest.dataFields = attributes;
         Response<IterableApiResponse> response = iterableService.userUpdate(ITERABLE_API_KEY, userUpdateRequest).execute();
@@ -127,12 +130,12 @@ public class IterableServiceTest {
         String email1 = userId1 + "@mparticle.com";
         String email2 = userId2 + "@mparticle.com";
         ApiUser user1 = new ApiUser();
-        Map<String, String> attributes1 = new HashMap<String, String>();
+        Map<String, Object> attributes1 = new HashMap<String, Object>();
         attributes1.put("test subscribe key", "test subscribe value 1");
         user1.dataFields = attributes1;
         user1.email = email1;
         user1.userId = userId1;
-        Map<String, String> attributes2 = new HashMap<String, String>();
+        Map<String, Object> attributes2 = new HashMap<String, Object>();
         attributes2.put("test subscribe key", "test subscribe value 2");
         ApiUser user2 = new ApiUser();
         user2.dataFields = attributes2;

@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class ApiUser {
     public String email;
-    public Map<String, String> dataFields;
+    public Map<String, Object> dataFields;
     public String userId;
 
 }

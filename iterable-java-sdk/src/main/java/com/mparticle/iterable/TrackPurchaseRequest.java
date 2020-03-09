@@ -12,5 +12,5 @@ public class TrackPurchaseRequest {
     public Integer templateId;
     public BigDecimal total;
     public Integer createdAt;
-    public Map<String, String> dataFields;
+    public Map<String, Object> dataFields;
 }

@@ -16,7 +16,7 @@ public abstract class IterableRequest {
     /**
      *  Additional data associated with event (i.e. item id, item amount),
      */
-    public Map<String, String> dataFields;
+    public Map<String, Object> dataFields;
     /**
      * userId that was passed into the updateUser call
      */
