@@ -429,28 +429,51 @@ public class IterableExtensionTest {
         Map<String, String> audienceSubscriptionSettings = new HashMap<>();
         audienceSubscriptionSettings.put(IterableExtension.SETTING_LIST_ID, "1");
         audience.setAudienceSubscriptionSettings(audienceSubscriptionSettings);
+        audience.setAudienceAction(Audience.AudienceAction.ADD);
 
         Audience audience2 = new Audience();
         Map<String, String> audienceSubscriptionSettings2 = new HashMap<>();
         audienceSubscriptionSettings2.put(IterableExtension.SETTING_LIST_ID, "2");
         audience2.setAudienceSubscriptionSettings(audienceSubscriptionSettings2);
+        audience2.setAudienceAction(Audience.AudienceAction.ADD);
 
         Audience audience3 = new Audience();
         Map<String, String> audienceSubscriptionSettings3 = new HashMap<>();
         audienceSubscriptionSettings3.put(IterableExtension.SETTING_LIST_ID, "3");
         audience3.setAudienceSubscriptionSettings(audienceSubscriptionSettings3);
+        audience3.setAudienceAction(Audience.AudienceAction.DELETE);
 
         List<Audience> list1 = new LinkedList<>();
         list1.add(audience);
         list1.add(audience2);
+        list1.add(audience3);
+
+        Audience audience4 = new Audience();
+        Map<String, String> audienceSubscriptionSettings4 = new HashMap<>();
+        audienceSubscriptionSettings4.put(IterableExtension.SETTING_LIST_ID, "1");
+        audience4.setAudienceSubscriptionSettings(audienceSubscriptionSettings4);
+        audience4.setAudienceAction(Audience.AudienceAction.DELETE);
+
+        Audience audience5 = new Audience();
+        Map<String, String> audienceSubscriptionSettings5 = new HashMap<>();
+        audienceSubscriptionSettings5.put(IterableExtension.SETTING_LIST_ID, "2");
+        audience5.setAudienceSubscriptionSettings(audienceSubscriptionSettings5);
+        audience5.setAudienceAction(Audience.AudienceAction.DELETE);
+
+        Audience audience6 = new Audience();
+        Map<String, String> audienceSubscriptionSettings6 = new HashMap<>();
+        audienceSubscriptionSettings6.put(IterableExtension.SETTING_LIST_ID, "3");
+        audience6.setAudienceSubscriptionSettings(audienceSubscriptionSettings6);
+        audience6.setAudienceAction(Audience.AudienceAction.ADD);
 
         List<Audience> list2 = new LinkedList<>();
-        list2.add(audience3);
+        list2.add(audience4);
+        list2.add(audience5);
+        list2.add(audience6);
 
         List<UserProfile> profiles = new LinkedList<>();
         UserProfile profile1 = new UserProfile();
-        profile1.setAddedAudiences(list1);
-        profile1.setRemovedAudiences(list2);
+        profile1.setAudiences(list1);
         List<UserIdentity> userIdentities1 = new LinkedList<>();
         userIdentities1.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
         userIdentities1.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
@@ -458,8 +481,7 @@ public class IterableExtensionTest {
         profiles.add(profile1);
 
         UserProfile profile2 = new UserProfile();
-        profile2.setAddedAudiences(list2);
-        profile2.setRemovedAudiences(list1);
+        profile2.setAudiences(list2);
         List<UserIdentity> userIdentities2 = new LinkedList<>();
         userIdentities2.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest-2@mparticle.com"));
         userIdentities2.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "1234567"));

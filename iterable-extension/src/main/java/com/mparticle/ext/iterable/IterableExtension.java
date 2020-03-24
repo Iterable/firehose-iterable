@@ -475,7 +475,7 @@ public class IterableExtension extends MessageProcessor {
         listIdSetting.setIsRequired(true);
         listIdSetting.setDescription("The ID of the Iterable list to populate with the users from this segment.");
         subscriptionSettings.add(listIdSetting);
-        audienceRegistration.setAudienceSubscriptionSettings(subscriptionSettings);
+        audienceRegistration.setAudienceConnectionSettings(subscriptionSettings);
         response.setAudienceProcessingRegistration(audienceRegistration);
 
         return response;
@@ -684,8 +684,14 @@ public class IterableExtension extends MessageProcessor {
                 }
             }
             if (email != null) {
-                if (profile.getAddedAudiences() != null) {
-                    for (Audience audience : profile.getAddedAudiences()) {
+                if (profile.getAudiences() != null) {
+                    List<Audience> addedAudiences = profile.getAudiences().stream()
+                            .filter(audience -> audience.getAudienceAction() == Audience.AudienceAction.ADD)
+                            .collect(Collectors.toList());
+                    List<Audience> removedAudiences = profile.getAudiences().stream()
+                            .filter(audience -> audience.getAudienceAction() == Audience.AudienceAction.DELETE)
+                            .collect(Collectors.toList());
+                    for (Audience audience : addedAudiences) {
                         Map<String, String> audienceSettings = audience.getAudienceSubscriptionSettings();
                         int listId = Integer.parseInt(audienceSettings.get(SETTING_LIST_ID));
                         ApiUser user = new ApiUser();
@@ -696,9 +702,7 @@ public class IterableExtension extends MessageProcessor {
                         }
                         additions.get(listId).add(user);
                     }
-                }
-                if (profile.getRemovedAudiences() != null) {
-                    for (Audience audience : profile.getRemovedAudiences()) {
+                    for (Audience audience : removedAudiences) {
                         Map<String, String> audienceSettings = audience.getAudienceSubscriptionSettings();
                         int listId = Integer.parseInt(audienceSettings.get(SETTING_LIST_ID));
                         Unsubscriber unsubscriber = new Unsubscriber();
