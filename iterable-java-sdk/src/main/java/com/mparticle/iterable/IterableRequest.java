@@ -2,13 +2,8 @@ package com.mparticle.iterable;
 
 import java.util.Map;
 
-public abstract class IterableRequest {
+public abstract class IterableRequest extends UserRequest {
 
-
-    /**
-     * Either email or userId must be passed in to identify the user.  If both are passed in, email takes precedence.
-     */
-    public String email;
     /**
      *  Time event happened. Set to the time event was received if unspecified. Expects a unix timestamp.,
      */
@@ -17,10 +12,6 @@ public abstract class IterableRequest {
      *  Additional data associated with event (i.e. item id, item amount),
      */
     public Map<String, Object> dataFields;
-    /**
-     * userId that was passed into the updateUser call
-     */
-    public String userId;
     /**
      * Campaign tied to conversion
      */

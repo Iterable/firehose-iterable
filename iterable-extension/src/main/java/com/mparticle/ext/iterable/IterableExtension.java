@@ -53,13 +53,7 @@ public class IterableExtension extends MessageProcessor {
                 TrackPushOpenRequest request = new TrackPushOpenRequest();
                 List<UserIdentity> identities = processingRequest.getUserIdentities();
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
-                    for (UserIdentity identity : identities) {
-                        if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                            request.email = identity.getValue();
-                        } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                            request.userId = identity.getValue();
-                        }
-                    }
+                    addUserIdentitiesToRequest(request, identities);
                     if (request.email == null && request.userId == null) {
                         throw new IOException("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                     }
@@ -225,13 +219,7 @@ public class IterableExtension extends MessageProcessor {
         List<UserIdentity> identities = request.getUserIdentities();
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest();
         if (identities != null) {
-            for (UserIdentity identity : identities) {
-                if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                    userUpdateRequest.email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                    userUpdateRequest.userId = identity.getValue();
-                }
-            }
+            addUserIdentitiesToRequest(userUpdateRequest, identities);
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
@@ -280,15 +268,7 @@ public class IterableExtension extends MessageProcessor {
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
             List<UserIdentity> identities = event.getRequest().getUserIdentities();
             ApiUser apiUser = new ApiUser();
-            if (identities != null) {
-                for (UserIdentity identity : identities) {
-                    if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                        apiUser.email = identity.getValue();
-                    } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                        apiUser.userId = identity.getValue();
-                    }
-                }
-            }
+            addUserIdentitiesToRequest(apiUser, identities);
             boolean shouldCoerceStrings = shouldCoerceStrings(event.getRequest());
             apiUser.dataFields = convertAttributes(event.getRequest().getUserAttributes(), shouldCoerceStrings);
             purchaseRequest.user = apiUser;
@@ -602,15 +582,7 @@ public class IterableExtension extends MessageProcessor {
         request.createdAt = (int) (event.getTimestamp() / 1000.0);
         request.dataFields = attemptTypeConversion(event.getAttributes());
         List<UserIdentity> identities = event.getRequest().getUserIdentities();
-        if (identities != null) {
-            for (UserIdentity identity : identities) {
-                if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                    request.email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                    request.userId = identity.getValue();
-                }
-            }
-        }
+        addUserIdentitiesToRequest(request, identities);
 
         Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
         if (response.isSuccessful() && !response.body().isSuccess()) {
@@ -778,6 +750,18 @@ public class IterableExtension extends MessageProcessor {
             }
         }
         return new AudienceMembershipChangeResponse();
+    }
+
+    private void addUserIdentitiesToRequest(UserRequest request, List<UserIdentity> identities) {
+        if (identities != null) {
+            for (UserIdentity identity : identities) {
+                if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
+                    request.email = identity.getValue();
+                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
+                    request.userId = identity.getValue();
+                }
+            }
+        }
     }
 
 }
