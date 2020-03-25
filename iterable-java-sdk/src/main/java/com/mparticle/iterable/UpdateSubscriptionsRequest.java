@@ -2,8 +2,7 @@ package com.mparticle.iterable;
 
 import java.util.List;
 
-public class UpdateSubscriptionsRequest {
-    public String email;
+public class UpdateSubscriptionsRequest extends UserRequest {
     public List<Integer> emailListIds;
     public List<Integer> unsubscribedChannelIds;
     public List<Integer> unsubscribedMessageTypeIds;

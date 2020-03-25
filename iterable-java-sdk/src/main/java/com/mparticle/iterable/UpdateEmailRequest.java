@@ -5,5 +5,6 @@ package com.mparticle.iterable;
  */
 public class UpdateEmailRequest {
     public String currentEmail;
+    public String currentUserId;
     public String newEmail;
 }
