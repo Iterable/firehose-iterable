@@ -1,0 +1,30 @@
+name: Java CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Test with Gradle
+      run: ./gradlew test
+    - name: Build with Gradle
+      run: ./gradlew build
+    - name: Deploy to AWS
+      if: github.ref == 'refs/heads/develop'
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws_region: us-east-1
+        function_name: mparticle_iterable_firehose_test
+        zip_file: iterable-extension/build/distributions/iterable-extension.zip
+      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_iterable_firehose_test --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip
