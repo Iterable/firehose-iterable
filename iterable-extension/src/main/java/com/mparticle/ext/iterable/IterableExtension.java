@@ -43,6 +43,11 @@ public class IterableExtension extends MessageProcessor {
     }
 
     private void processPushOpens(EventProcessingRequest processingRequest) throws IOException {
+        // Skip processing if the SDK is present - it tracks opens automatically
+        if (hasBundledSDK(processingRequest)) {
+            return;
+        }
+
         if (processingRequest.getEvents() != null) {
             List<PushMessageOpenEvent> pushOpenEvents = processingRequest.getEvents().stream()
                     .filter(e -> e.getType() == Event.Type.PUSH_MESSAGE_OPEN)
@@ -121,6 +126,11 @@ public class IterableExtension extends MessageProcessor {
 
     @Override
     public void processPushSubscriptionEvent(PushSubscriptionEvent event) throws IOException {
+        // Skip processing if the SDK is present - it registers tokens automatically
+        if (hasBundledSDK(event.getRequest())) {
+            return;
+        }
+
         RegisterDeviceTokenRequest request = new RegisterDeviceTokenRequest();
         if (PushSubscriptionEvent.Action.UNSUBSCRIBE.equals(event.getAction())) {
             return;
@@ -632,6 +642,11 @@ public class IterableExtension extends MessageProcessor {
 
     @Override
     public void processPushMessageReceiptEvent(PushMessageReceiptEvent event) throws IOException {
+        // Skip processing if the SDK is present - it tracks opens automatically
+        if (hasBundledSDK(event.getRequest())) {
+            return;
+        }
+
         TrackPushOpenRequest request = new TrackPushOpenRequest();
         List<UserIdentity> identities = event.getRequest().getUserIdentities();
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
@@ -766,6 +781,12 @@ public class IterableExtension extends MessageProcessor {
                 }
             }
         }
+    }
+
+    private boolean hasBundledSDK(EventProcessingRequest processingRequest) {
+        Map<String, String> integrationAttributes = processingRequest.getIntegrationAttributes();
+        return integrationAttributes != null &&
+                integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
 }
