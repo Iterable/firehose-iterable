@@ -21,16 +21,18 @@ import java.util.*;
 
 import static com.mparticle.ext.iterable.IterableExtension.SETTING_API_KEY;
 import static com.mparticle.ext.iterable.IterableExtension.SETTING_COERCE_STRINGS_TO_SCALARS;
+import static com.mparticle.ext.iterable.IterableExtension.SETTING_USER_ID_FIELD;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 public class IterableExtensionTest {
+    private static final String TEST_API_KEY = "foo api key";
 
     @org.junit.Test
     public void testProcessEventProcessingRequest() throws Exception {
         IterableExtension extension = new IterableExtension();
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         List<Event> events = new LinkedList<>();
         Event customEvent1 = new UserAttributeChangeEvent();
         customEvent1.setTimestamp(3);
@@ -48,11 +50,6 @@ public class IterableExtensionTest {
         events.add(customEvent4);
 
         request.setEvents(events);
-        Account account = new Account();
-        HashMap<String, String> settings = new HashMap<String, String>();
-        settings.put(SETTING_API_KEY, "cool api key");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
         extension.processEventProcessingRequest(request);
         assertNotNull("IterableService should have been created", extension.iterableService);
 
@@ -73,23 +70,18 @@ public class IterableExtensionTest {
         apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
         Response<IterableApiResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
-        EventProcessingRequest request = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo api key");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
+        EventProcessingRequest request = createEventProcessingRequest();
         //no user identities, no API call
         extension.updateUser(request);
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest();
-        Mockito.verify(extension.iterableService, never()).userUpdate("foo api key", userUpdateRequest);
+        Mockito.verify(extension.iterableService, never()).userUpdate(TEST_API_KEY, userUpdateRequest);
 
         //user identities but no email/userid, no API call
         List<UserIdentity> identities = new LinkedList<>();
         identities.add(new UserIdentity(UserIdentity.Type.FACEBOOK, Identity.Encoding.RAW, "123456"));
         request.setUserIdentities(identities);
         extension.updateUser(request);
-        Mockito.verify(extension.iterableService, never()).userUpdate("foo api key", userUpdateRequest);
+        Mockito.verify(extension.iterableService, never()).userUpdate(TEST_API_KEY, userUpdateRequest);
 
         //ok, now we should get a single API call
         identities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
@@ -104,7 +96,7 @@ public class IterableExtensionTest {
         ArgumentCaptor<UserUpdateRequest> argument = ArgumentCaptor.forClass(UserUpdateRequest.class);
         ArgumentCaptor<String> apiArg = ArgumentCaptor.forClass(String.class);
         Mockito.verify(extension.iterableService).userUpdate(apiArg.capture(), argument.capture());
-        assertEquals("foo api key", apiArg.getValue());
+        assertEquals(TEST_API_KEY, apiArg.getValue());
         assertEquals("mptest@mparticle.com", argument.getValue().email);
         assertEquals("123456", argument.getValue().userId);
         assertEquals(argument.getValue().dataFields.get("some attribute key"), "some attribute value");
@@ -135,12 +127,7 @@ public class IterableExtensionTest {
         Response<IterableApiResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
 
-        EventProcessingRequest request = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo api key");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
+        EventProcessingRequest request = createEventProcessingRequest();
         
         List<UserIdentity> identities = new LinkedList<>();
         identities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
@@ -151,14 +138,14 @@ public class IterableExtensionTest {
         userAttributes.put("test_int", "123");
         userAttributes.put("test_float", "1.5");
         request.setUserAttributes(userAttributes);
-        
-        settings.put(SETTING_COERCE_STRINGS_TO_SCALARS, "True");
-        extension.updateUser(request);
-        
-        settings.put(SETTING_COERCE_STRINGS_TO_SCALARS, "False");
+
+        request.getAccount().getAccountSettings().put(SETTING_COERCE_STRINGS_TO_SCALARS, "True");
         extension.updateUser(request);
 
-        settings.remove(SETTING_COERCE_STRINGS_TO_SCALARS);
+        request.getAccount().getAccountSettings().put(SETTING_COERCE_STRINGS_TO_SCALARS, "False");
+        extension.updateUser(request);
+
+        request.getAccount().getAccountSettings().remove(SETTING_COERCE_STRINGS_TO_SCALARS);
         extension.updateUser(request);
 
         ArgumentCaptor<UserUpdateRequest> argument = ArgumentCaptor.forClass(UserUpdateRequest.class);
@@ -242,12 +229,7 @@ public class IterableExtensionTest {
         CustomEvent event = new CustomEvent();
         event.setTimestamp(timeStamp);
         event.setName("My Event Name");
-        EventProcessingRequest request = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
+        EventProcessingRequest request = createEventProcessingRequest();
         List<UserIdentity> userIdentities = new LinkedList<>();
         userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
         userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
@@ -289,12 +271,7 @@ public class IterableExtensionTest {
         apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
         Response<IterableApiResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
-        EventProcessingRequest eventProcessingRequest = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo");
-        account.setAccountSettings(settings);
-        eventProcessingRequest.setAccount(account);
+        EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         eventProcessingRequest.setUserIdentities(new LinkedList<>());
         PushMessageReceiptEvent event = new PushMessageReceiptEvent();
         event.setRequest(eventProcessingRequest);
@@ -352,14 +329,9 @@ public class IterableExtensionTest {
         apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
         Response<IterableApiResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
-        EventProcessingRequest eventProcessingRequest = new EventProcessingRequest();
+        EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         eventProcessingRequest.setUserIdentities(new LinkedList<>());
         PushMessageReceiptEvent event = new PushMessageReceiptEvent();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo");
-        account.setAccountSettings(settings);
-        eventProcessingRequest.setAccount(account);
         event.setRequest(eventProcessingRequest);
         IOException exception = null;
         event.setPayload("anything to get past null check");
@@ -413,12 +385,7 @@ public class IterableExtensionTest {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
 
-        EventProcessingRequest eventProcessingRequest = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo");
-        account.setAccountSettings(settings);
-        eventProcessingRequest.setAccount(account);
+        EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         Map<String, String> integrationAttributes = new HashMap<>();
         integrationAttributes.put("Iterable.sdkVersion", "3.2.1");
         eventProcessingRequest.setIntegrationAttributes(integrationAttributes);
@@ -623,12 +590,7 @@ public class IterableExtensionTest {
 
         event.setTimestamp(timeStamp);
 
-        EventProcessingRequest request = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
-        settings.put(SETTING_API_KEY, "foo");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
+        EventProcessingRequest request = createEventProcessingRequest();
         List<UserIdentity> userIdentities = new LinkedList<>();
         userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
         userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
@@ -665,7 +627,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailNoEnvironmentOrStamp() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(null);
         request.setDeviceApplicationStamp(null);
         Exception e = null;
@@ -679,7 +641,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailNoEnvironment() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(null);
         request.setDeviceApplicationStamp("1234");
         String email = IterableExtension.getPlaceholderEmail(request);
@@ -688,19 +650,19 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailEnvironmentButNoIds() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
         request.setDeviceApplicationStamp("1234");
         String email = IterableExtension.getPlaceholderEmail(request);
         assertEquals("1234@placeholder.email", email);
 
-        request = new EventProcessingRequest();
+        request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new IosRuntimeEnvironment());
         request.setDeviceApplicationStamp("12345");
         email = IterableExtension.getPlaceholderEmail(request);
         assertEquals("12345@placeholder.email", email);
 
-        request = new EventProcessingRequest();
+        request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new TVOSRuntimeEnvironment());
         request.setDeviceApplicationStamp("123456");
         email = IterableExtension.getPlaceholderEmail(request);
@@ -709,7 +671,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailEnvironmentIDFA() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new IosRuntimeEnvironment());
         DeviceIdentity idfa = new DeviceIdentity(DeviceIdentity.Type.IOS_ADVERTISING_ID, Identity.Encoding.RAW, "foo-idfa");
         ((IosRuntimeEnvironment)request.getRuntimeEnvironment()).setIdentities(Arrays.asList(idfa));
@@ -726,7 +688,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailEnvironmentIDFV() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new IosRuntimeEnvironment());
         DeviceIdentity idfv = new DeviceIdentity(DeviceIdentity.Type.IOS_VENDOR_ID, Identity.Encoding.RAW, "foo-idfv");
         DeviceIdentity idfa = new DeviceIdentity(DeviceIdentity.Type.IOS_ADVERTISING_ID, Identity.Encoding.RAW, "foo-idfa");
@@ -744,7 +706,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailEnvironmentGAID() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
         DeviceIdentity idfv = new DeviceIdentity(DeviceIdentity.Type.ANDROID_ID, Identity.Encoding.RAW, "foo-aid");
         DeviceIdentity idfa = new DeviceIdentity(DeviceIdentity.Type.GOOGLE_ADVERTISING_ID, Identity.Encoding.RAW, "foo-gaid");
@@ -756,7 +718,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testGetPlaceholderEmailEnvironmentAndroidID() throws Exception {
-        EventProcessingRequest request = new EventProcessingRequest();
+        EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
         DeviceIdentity idfv = new DeviceIdentity(DeviceIdentity.Type.ANDROID_ID, Identity.Encoding.RAW, "foo-aid");
         ((AndroidRuntimeEnvironment)request.getRuntimeEnvironment()).setIdentities(Arrays.asList(idfv));
@@ -783,12 +745,9 @@ public class IterableExtensionTest {
         CustomEvent event = new CustomEvent();
         event.setTimestamp(timeStamp);
         event.setName(IterableExtension.UPDATE_SUBSCRIPTIONS_CUSTOM_EVENT_NAME);
-        EventProcessingRequest request = new EventProcessingRequest();
-        Account account = new Account();
-        Map<String, String> settings = new HashMap<>();
+        EventProcessingRequest request = createEventProcessingRequest();
+        Map<String, String> settings = request.getAccount().getAccountSettings();
         settings.put(SETTING_API_KEY, "foo api key 2");
-        account.setAccountSettings(settings);
-        request.setAccount(account);
         List<UserIdentity> userIdentities = new LinkedList<>();
         userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
         request.setUserIdentities(userIdentities);
@@ -829,5 +788,18 @@ public class IterableExtensionTest {
             exception = ioe;
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
+    }
+
+    private EventProcessingRequest createEventProcessingRequest() {
+        EventProcessingRequest request = new EventProcessingRequest();
+        Account account = new Account();
+        HashMap<String, String> settings = new HashMap<String, String>();
+        settings.put(SETTING_API_KEY, TEST_API_KEY);
+        settings.put(SETTING_USER_ID_FIELD, "customerId");
+        account.setAccountSettings(settings);
+        request.setAccount(account);
+        request.setMpId("1234567890");
+
+        return request;
     }
 }

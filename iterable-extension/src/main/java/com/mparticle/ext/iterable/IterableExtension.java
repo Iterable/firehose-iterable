@@ -25,6 +25,9 @@ public class IterableExtension extends MessageProcessor {
     public static final String SETTING_APNS_SANDBOX_KEY = "apnsSandboxIntegrationName";
     public static final String SETTING_LIST_ID = "listId";
     public static final String SETTING_COERCE_STRINGS_TO_SCALARS = "coerceStringsToScalars";
+    public static final String SETTING_USER_ID_FIELD = "userIdField";
+    public static final String USER_ID_FIELD_CUSTOMER_ID = "customerId";
+    public static final String USER_ID_FIELD_MPID = "mpid";
     IterableService iterableService;
 
     @Override
@@ -56,9 +59,8 @@ public class IterableExtension extends MessageProcessor {
 
             for (PushMessageOpenEvent event : pushOpenEvents) {
                 TrackPushOpenRequest request = new TrackPushOpenRequest();
-                List<UserIdentity> identities = processingRequest.getUserIdentities();
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
-                    addUserIdentitiesToRequest(request, identities);
+                    addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
                         throw new IOException("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                     }
@@ -196,7 +198,6 @@ public class IterableExtension extends MessageProcessor {
             String placeholderEmail = getPlaceholderEmail(request);
             //convert from placeholder to email now that we have one
             for (UserIdentityChangeEvent changeEvent : emailAddedEvents) {
-
                 UpdateEmailRequest updateEmailRequest = new UpdateEmailRequest();
                 updateEmailRequest.currentEmail = placeholderEmail;
                 //this is safe due to the filters above
@@ -226,10 +227,9 @@ public class IterableExtension extends MessageProcessor {
             }
         }
 
-        List<UserIdentity> identities = request.getUserIdentities();
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest();
-        if (identities != null) {
-            addUserIdentitiesToRequest(userUpdateRequest, identities);
+        if (request.getUserIdentities() != null) {
+            addUserIdentitiesToRequest(userUpdateRequest, request);
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
@@ -267,6 +267,11 @@ public class IterableExtension extends MessageProcessor {
         return Boolean.parseBoolean(settingValue);
     }
 
+    private static boolean shouldUseMPID(EventProcessingRequest request) {
+        String settingValue = request.getAccount().getStringSetting(SETTING_USER_ID_FIELD,false, USER_ID_FIELD_CUSTOMER_ID);
+        return settingValue.equals(USER_ID_FIELD_MPID);
+    }
+
     private static boolean isEmpty(CharSequence chars) {
         return chars == null || "".equals(chars);
     }
@@ -276,9 +281,8 @@ public class IterableExtension extends MessageProcessor {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
             TrackPurchaseRequest purchaseRequest = new TrackPurchaseRequest();
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
-            List<UserIdentity> identities = event.getRequest().getUserIdentities();
             ApiUser apiUser = new ApiUser();
-            addUserIdentitiesToRequest(apiUser, identities);
+            addUserIdentitiesToRequest(apiUser, event.getRequest());
             boolean shouldCoerceStrings = shouldCoerceStrings(event.getRequest());
             apiUser.dataFields = convertAttributes(event.getRequest().getUserAttributes(), shouldCoerceStrings);
             purchaseRequest.user = apiUser;
@@ -325,9 +329,10 @@ public class IterableExtension extends MessageProcessor {
     /**
      *
      * Make the best attempt at creating a placeholder email, prioritize:
-     *  1. Platform respective device IDs
+     *  1. MPID if enabled
+     *  2. Platform respective device IDs
      *  3. customer Id
-     *  3. device application stamp
+     *  4. device application stamps
      * @param request
      * @return
      *
@@ -335,62 +340,66 @@ public class IterableExtension extends MessageProcessor {
      */
     static String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
         String id = null;
-        if (request.getRuntimeEnvironment() instanceof IosRuntimeEnvironment || request.getRuntimeEnvironment() instanceof TVOSRuntimeEnvironment ) {
-            List<DeviceIdentity> deviceIdentities = null;
-            if (request.getRuntimeEnvironment() instanceof IosRuntimeEnvironment) {
-                deviceIdentities = ((IosRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities();
-            } else {
-                deviceIdentities = ((TVOSRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities();
-            }
-            if (deviceIdentities != null) {
-                DeviceIdentity deviceIdentity = deviceIdentities.stream().filter(t -> t.getType().equals(DeviceIdentity.Type.IOS_VENDOR_ID))
-                        .findFirst()
-                        .orElse(null);
-                if (deviceIdentity != null) {
-                    id = deviceIdentity.getValue();
+        if (shouldUseMPID(request)) {
+            id = request.getMpId();
+        } else {
+            if (request.getRuntimeEnvironment() instanceof IosRuntimeEnvironment || request.getRuntimeEnvironment() instanceof TVOSRuntimeEnvironment ) {
+                List<DeviceIdentity> deviceIdentities = null;
+                if (request.getRuntimeEnvironment() instanceof IosRuntimeEnvironment) {
+                    deviceIdentities = ((IosRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities();
+                } else {
+                    deviceIdentities = ((TVOSRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities();
                 }
-                if (isEmpty(id)) {
-                    deviceIdentity = deviceIdentities.stream().filter(t -> t.getType().equals(DeviceIdentity.Type.IOS_ADVERTISING_ID))
+                if (deviceIdentities != null) {
+                    DeviceIdentity deviceIdentity = deviceIdentities.stream().filter(t -> t.getType().equals(DeviceIdentity.Type.IOS_VENDOR_ID))
                             .findFirst()
                             .orElse(null);
                     if (deviceIdentity != null) {
                         id = deviceIdentity.getValue();
                     }
+                    if (isEmpty(id)) {
+                        deviceIdentity = deviceIdentities.stream().filter(t -> t.getType().equals(DeviceIdentity.Type.IOS_ADVERTISING_ID))
+                                .findFirst()
+                                .orElse(null);
+                        if (deviceIdentity != null) {
+                            id = deviceIdentity.getValue();
+                        }
+                    }
                 }
-            }
-        } else if (request.getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
-            if (((AndroidRuntimeEnvironment)request.getRuntimeEnvironment()).getIdentities() != null) {
-                DeviceIdentity deviceIdentity = ((AndroidRuntimeEnvironment)request.getRuntimeEnvironment()).getIdentities().stream().filter(t -> t.getType().equals(DeviceIdentity.Type.GOOGLE_ADVERTISING_ID))
-                        .findFirst()
-                        .orElse(null);
-                if (deviceIdentity != null) {
-                    id = deviceIdentity.getValue();
-                }
-                if (isEmpty(id)) {
-                    deviceIdentity = ((AndroidRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities().stream().filter(t -> t.getType().equals(DeviceIdentity.Type.ANDROID_ID))
+            } else if (request.getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
+                if (((AndroidRuntimeEnvironment)request.getRuntimeEnvironment()).getIdentities() != null) {
+                    DeviceIdentity deviceIdentity = ((AndroidRuntimeEnvironment)request.getRuntimeEnvironment()).getIdentities().stream().filter(t -> t.getType().equals(DeviceIdentity.Type.GOOGLE_ADVERTISING_ID))
                             .findFirst()
                             .orElse(null);
                     if (deviceIdentity != null) {
                         id = deviceIdentity.getValue();
                     }
+                    if (isEmpty(id)) {
+                        deviceIdentity = ((AndroidRuntimeEnvironment) request.getRuntimeEnvironment()).getIdentities().stream().filter(t -> t.getType().equals(DeviceIdentity.Type.ANDROID_ID))
+                                .findFirst()
+                                .orElse(null);
+                        if (deviceIdentity != null) {
+                            id = deviceIdentity.getValue();
+                        }
+                    }
                 }
             }
-        }
 
-        if (isEmpty(id)) {
-            if (request.getUserIdentities() != null) {
-                UserIdentity customerId = request.getUserIdentities().stream()
-                        .filter(t -> t.getType().equals(UserIdentity.Type.CUSTOMER))
-                        .findFirst()
-                        .orElse(null);
-                if (customerId != null) {
-                    id = customerId.getValue();
+            if (isEmpty(id)) {
+                if (request.getUserIdentities() != null) {
+                    UserIdentity customerId = request.getUserIdentities().stream()
+                            .filter(t -> t.getType().equals(UserIdentity.Type.CUSTOMER))
+                            .findFirst()
+                            .orElse(null);
+                    if (customerId != null) {
+                        id = customerId.getValue();
+                    }
                 }
             }
-        }
 
-        if (isEmpty(id)) {
-            id = request.getDeviceApplicationStamp();
+            if (isEmpty(id)) {
+                id = request.getDeviceApplicationStamp();
+            }
         }
 
         if (isEmpty(id)) {
@@ -422,6 +431,7 @@ public class IterableExtension extends MessageProcessor {
         permissions.setAllowAccessDeviceApplicationStamp(true);
         permissions.setAllowUserAttributes(true);
         permissions.setAllowDeviceInformation(true);
+        permissions.setAllowAccessMpid(true);
         response.setPermissions(permissions);
         response.setDescription("<a href=\"https://www.iterable.com\">Iterable</a> makes consumer growth marketing and user engagement simple. With Iterable, marketers send the right message, to the right device, at the right time.");
         EventProcessingRegistration eventProcessingRegistration = new EventProcessingRegistration()
@@ -465,6 +475,7 @@ public class IterableExtension extends MessageProcessor {
                         .setIsChecked(true)
                         .setDescription("If enabled, mParticle will attempt to coerce string attributes into scalar types (integer, boolean, and float).")
         );
+        // userIdField setting is set up manually in mParticle so it is not specified here
         eventProcessingRegistration.setAccountSettings(eventSettings);
 
         // Specify supported event types
@@ -591,8 +602,7 @@ public class IterableExtension extends MessageProcessor {
         TrackRequest request = new TrackRequest(event.getName());
         request.createdAt = (int) (event.getTimestamp() / 1000.0);
         request.dataFields = attemptTypeConversion(event.getAttributes());
-        List<UserIdentity> identities = event.getRequest().getUserIdentities();
-        addUserIdentitiesToRequest(request, identities);
+        addUserIdentitiesToRequest(request, event.getRequest());
 
         Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
         if (response.isSuccessful() && !response.body().isSuccess()) {
@@ -771,15 +781,19 @@ public class IterableExtension extends MessageProcessor {
         return new AudienceMembershipChangeResponse();
     }
 
-    private void addUserIdentitiesToRequest(UserRequest request, List<UserIdentity> identities) {
+    private void addUserIdentitiesToRequest(UserRequest request, EventProcessingRequest processingRequest) {
+        List<UserIdentity> identities = processingRequest.getUserIdentities();
         if (identities != null) {
             for (UserIdentity identity : identities) {
                 if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
                     request.email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
+                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER) && !shouldUseMPID(processingRequest)) {
                     request.userId = identity.getValue();
                 }
             }
+        }
+        if (shouldUseMPID(processingRequest)) {
+            request.userId = processingRequest.getMpId();
         }
     }
 
