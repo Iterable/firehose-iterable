@@ -267,8 +267,8 @@ public class IterableExtension extends MessageProcessor {
         return Boolean.parseBoolean(settingValue);
     }
 
-    private static boolean shouldUseMPID(EventProcessingRequest request) {
-        String settingValue = request.getAccount().getStringSetting(SETTING_USER_ID_FIELD,false, USER_ID_FIELD_CUSTOMER_ID);
+    private static boolean shouldUseMPID(Account account) {
+        String settingValue = account.getStringSetting(SETTING_USER_ID_FIELD,false, USER_ID_FIELD_CUSTOMER_ID);
         return settingValue.equals(USER_ID_FIELD_MPID);
     }
 
@@ -340,7 +340,7 @@ public class IterableExtension extends MessageProcessor {
      */
     static String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
         String id = null;
-        if (shouldUseMPID(request)) {
+        if (shouldUseMPID(request.getAccount())) {
             id = request.getMpId();
         } else {
             if (request.getRuntimeEnvironment() instanceof IosRuntimeEnvironment || request.getRuntimeEnvironment() instanceof TVOSRuntimeEnvironment ) {
@@ -658,15 +658,8 @@ public class IterableExtension extends MessageProcessor {
         }
 
         TrackPushOpenRequest request = new TrackPushOpenRequest();
-        List<UserIdentity> identities = event.getRequest().getUserIdentities();
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
-            for (UserIdentity identity : identities) {
-                if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                    request.email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                    request.userId = identity.getValue();
-                }
-            }
+            addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
                 throw new IOException("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
             }
@@ -699,16 +692,9 @@ public class IterableExtension extends MessageProcessor {
         HashMap<Integer, List<ApiUser>> additions = new HashMap<>();
         HashMap<Integer, List<Unsubscriber>> removals = new HashMap<>();
         for (UserProfile profile : request.getUserProfiles()) {
-            String email = null, userId = null;
-            List<UserIdentity> identities = profile.getUserIdentities();
-            for (UserIdentity identity : identities) {
-                if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
-                    email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER)) {
-                    userId = identity.getValue();
-                }
-            }
-            if (email != null) {
+            UserRequest userRequest = new UserRequest() {};
+            addUserIdentitiesToRequest(userRequest, profile, request.getAccount());
+            if (userRequest.email != null) {
                 if (profile.getAudiences() != null) {
                     List<Audience> addedAudiences = profile.getAudiences().stream()
                             .filter(audience -> audience.getAudienceAction() == Audience.AudienceAction.ADD)
@@ -720,8 +706,8 @@ public class IterableExtension extends MessageProcessor {
                         Map<String, String> audienceSettings = audience.getAudienceSubscriptionSettings();
                         int listId = Integer.parseInt(audienceSettings.get(SETTING_LIST_ID));
                         ApiUser user = new ApiUser();
-                        user.email = email;
-                        user.userId = userId;
+                        user.email = userRequest.email;
+                        user.userId = userRequest.userId;
                         if (!additions.containsKey(listId)) {
                             additions.put(listId, new LinkedList<>());
                         }
@@ -731,7 +717,7 @@ public class IterableExtension extends MessageProcessor {
                         Map<String, String> audienceSettings = audience.getAudienceSubscriptionSettings();
                         int listId = Integer.parseInt(audienceSettings.get(SETTING_LIST_ID));
                         Unsubscriber unsubscriber = new Unsubscriber();
-                        unsubscriber.email = email;
+                        unsubscriber.email = userRequest.email;
                         if (!removals.containsKey(listId)) {
                             removals.put(listId, new LinkedList<>());
                         }
@@ -782,18 +768,25 @@ public class IterableExtension extends MessageProcessor {
     }
 
     private void addUserIdentitiesToRequest(UserRequest request, EventProcessingRequest processingRequest) {
-        List<UserIdentity> identities = processingRequest.getUserIdentities();
+        addUserIdentitiesToRequest(request, processingRequest.getUserIdentities(), processingRequest.getAccount(), processingRequest.getMpId());
+    }
+
+    private void addUserIdentitiesToRequest(UserRequest request, UserProfile userProfile, Account account) {
+        addUserIdentitiesToRequest(request, userProfile.getUserIdentities(), account, userProfile.getMpId());
+    }
+
+    private void addUserIdentitiesToRequest(UserRequest request, List<UserIdentity> identities, Account account, String mpid) {
         if (identities != null) {
             for (UserIdentity identity : identities) {
                 if (identity.getType().equals(UserIdentity.Type.EMAIL)) {
                     request.email = identity.getValue();
-                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER) && !shouldUseMPID(processingRequest)) {
+                } else if (identity.getType().equals(UserIdentity.Type.CUSTOMER) && !shouldUseMPID(account)) {
                     request.userId = identity.getValue();
                 }
             }
         }
-        if (shouldUseMPID(processingRequest)) {
-            request.userId = processingRequest.getMpId();
+        if (shouldUseMPID(account)) {
+            request.userId = mpid;
         }
     }
 
