@@ -22,6 +22,7 @@ import java.util.*;
 import static com.mparticle.ext.iterable.IterableExtension.SETTING_API_KEY;
 import static com.mparticle.ext.iterable.IterableExtension.SETTING_COERCE_STRINGS_TO_SCALARS;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 public class IterableExtensionTest {
@@ -81,14 +82,14 @@ public class IterableExtensionTest {
         //no user identities, no API call
         extension.updateUser(request);
         UserUpdateRequest userUpdateRequest = new UserUpdateRequest();
-        Mockito.verify(extension.iterableService, Mockito.never()).userUpdate("foo api key", userUpdateRequest);
+        Mockito.verify(extension.iterableService, never()).userUpdate("foo api key", userUpdateRequest);
 
         //user identities but no email/userid, no API call
         List<UserIdentity> identities = new LinkedList<>();
         identities.add(new UserIdentity(UserIdentity.Type.FACEBOOK, Identity.Encoding.RAW, "123456"));
         request.setUserIdentities(identities);
         extension.updateUser(request);
-        Mockito.verify(extension.iterableService, Mockito.never()).userUpdate("foo api key", userUpdateRequest);
+        Mockito.verify(extension.iterableService, never()).userUpdate("foo api key", userUpdateRequest);
 
         //ok, now we should get a single API call
         identities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
@@ -188,7 +189,7 @@ public class IterableExtensionTest {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
         extension.processUserAttributeChangeEvent(new UserAttributeChangeEvent());
-        Mockito.verify(extension.iterableService, Mockito.never()).userUpdate(Mockito.any(), Mockito.any());
+        Mockito.verify(extension.iterableService, never()).userUpdate(Mockito.any(), Mockito.any());
     }
 
     /**
@@ -402,6 +403,40 @@ public class IterableExtensionTest {
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception2);
 
+    }
+
+    /**
+     * Verify that push message receipt event is not handled when Iterable SDK is installed
+     */
+    @Test
+    public void testProcessPushMessageReceiptEventWithSDK() throws Exception {
+        IterableExtension extension = new IterableExtension();
+        extension.iterableService = Mockito.mock(IterableService.class);
+
+        EventProcessingRequest eventProcessingRequest = new EventProcessingRequest();
+        Account account = new Account();
+        Map<String, String> settings = new HashMap<>();
+        settings.put(SETTING_API_KEY, "foo");
+        account.setAccountSettings(settings);
+        eventProcessingRequest.setAccount(account);
+        Map<String, String> integrationAttributes = new HashMap<>();
+        integrationAttributes.put("Iterable.sdkVersion", "3.2.1");
+        eventProcessingRequest.setIntegrationAttributes(integrationAttributes);
+        List<UserIdentity> userIdentities = new LinkedList<>();
+        userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
+        userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
+        eventProcessingRequest.setUserIdentities(userIdentities);
+        eventProcessingRequest.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
+        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        event.setRequest(eventProcessingRequest);
+        event.setPayload("{\"google.sent_time\":1507657706679,\"body\":\"example\",\"from\":\"674988899928\",\"itbl\":\"{\\\"campaignId\\\":12345,\\\"isGhostPush\\\":false,\\\"messageId\\\":\\\"1dce4e505b11111ca1111d6fdd774fbd\\\",\\\"templateId\\\":54321}\",\"google.message_id\":\"0:1507657706689231%62399b94f9fd7ecd\"}");
+
+        long timeStamp = System.currentTimeMillis();
+        event.setTimestamp(timeStamp);
+
+        extension.processPushMessageReceiptEvent(event);
+
+        Mockito.verify(extension.iterableService, never()).trackPushOpen(Mockito.any(), Mockito.any());
     }
 
     /**
