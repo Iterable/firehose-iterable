@@ -72,11 +72,11 @@ public class IterableExtension extends MessageProcessor {
                             Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
                             request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
                             request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
-                            request.messageId = mapper.writeValueAsString(iterableMap.get("messageId"));
+                            request.messageId = (String) iterableMap.get("messageId");
                         } else {
                             request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
                             request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
-                            request.messageId = mapper.writeValueAsString(((Map) payload.get("itbl")).get("messageId"));
+                            request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
@@ -671,11 +671,11 @@ public class IterableExtension extends MessageProcessor {
                     Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
                     request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
                     request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
-                    request.messageId = mapper.writeValueAsString(iterableMap.get("messageId"));
+                    request.messageId = (String) iterableMap.get("messageId");
                 } else {
                     request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
                     request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
-                    request.messageId = mapper.writeValueAsString(((Map) payload.get("itbl")).get("messageId"));
+                    request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
