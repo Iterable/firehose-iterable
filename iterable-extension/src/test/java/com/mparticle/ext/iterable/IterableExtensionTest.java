@@ -206,7 +206,6 @@ public class IterableExtensionTest {
         List<Event.Type> eventTypes = response.getEventProcessingRegistration().getSupportedEventTypes();
         assertTrue("Iterable should support custom events", eventTypes.contains(Event.Type.CUSTOM_EVENT));
         assertTrue("Iterable should support push subscriptions", eventTypes.contains(Event.Type.PUSH_SUBSCRIPTION));
-        assertTrue("Iterable should support push receipts", eventTypes.contains(Event.Type.PUSH_MESSAGE_RECEIPT));
         assertTrue("Iterable should support user identity changes", eventTypes.contains(Event.Type.USER_IDENTITY_CHANGE));
 
         Setting setting = response.getAudienceProcessingRegistration().getAudienceConnectionSettings().get(0);
@@ -261,11 +260,13 @@ public class IterableExtensionTest {
     }
 
     @org.junit.Test
-    public void testProcessAndroidPushMessageReceiptEvent() throws Exception {
+    public void testProcessAndroidPushOpenEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
         Call callMock = Mockito.mock(Call.class);
         Mockito.when(extension.iterableService.trackPushOpen(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        Mockito.when(extension.iterableService.userUpdate(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
         IterableApiResponse apiResponse = new IterableApiResponse();
         apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
@@ -273,12 +274,13 @@ public class IterableExtensionTest {
         Mockito.when(callMock.execute()).thenReturn(response);
         EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         eventProcessingRequest.setUserIdentities(new LinkedList<>());
-        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        PushMessageOpenEvent event = new PushMessageOpenEvent();
         event.setRequest(eventProcessingRequest);
+        eventProcessingRequest.setEvents(Collections.singletonList(event));
         IOException exception = null;
         event.setPayload("anything to get past null check");
         try {
-            extension.processPushMessageReceiptEvent(event);
+            extension.processEventProcessingRequest(eventProcessingRequest);
         } catch (IOException ioe) {
             exception = ioe;
         }
@@ -295,7 +297,7 @@ public class IterableExtensionTest {
         long timeStamp = System.currentTimeMillis();
         event.setTimestamp(timeStamp);
 
-        extension.processPushMessageReceiptEvent(event);
+        extension.processEventProcessingRequest(eventProcessingRequest);
 
         ArgumentCaptor<TrackPushOpenRequest> argument = ArgumentCaptor.forClass(TrackPushOpenRequest.class);
         Mockito.verify(extension.iterableService).trackPushOpen(Mockito.any(), argument.capture());
@@ -310,7 +312,7 @@ public class IterableExtensionTest {
 
         IOException exception2 = null;
         try {
-            extension.processPushMessageReceiptEvent(event);
+            extension.processEventProcessingRequest(eventProcessingRequest);
         } catch (IOException ioe) {
             exception2 = ioe;
         }
@@ -319,24 +321,28 @@ public class IterableExtensionTest {
     }
 
     @org.junit.Test
-    public void testProcessiOSPushMessageReceiptEvent() throws Exception {
+    public void testProcessiOSPushOpenEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
         Call callMock = Mockito.mock(Call.class);
         Mockito.when(extension.iterableService.trackPushOpen(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
+        Mockito.when(extension.iterableService.userUpdate(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
         IterableApiResponse apiResponse = new IterableApiResponse();
         apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
         Response<IterableApiResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
+
         EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         eventProcessingRequest.setUserIdentities(new LinkedList<>());
-        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        PushMessageOpenEvent event = new PushMessageOpenEvent();
         event.setRequest(eventProcessingRequest);
         IOException exception = null;
         event.setPayload("anything to get past null check");
+        eventProcessingRequest.setEvents(Collections.singletonList(event));
         try {
-            extension.processPushMessageReceiptEvent(event);
+            extension.processEventProcessingRequest(eventProcessingRequest);
         } catch (IOException ioe) {
             exception = ioe;
         }
@@ -347,6 +353,7 @@ public class IterableExtensionTest {
         userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
         eventProcessingRequest.setUserIdentities(userIdentities);
         eventProcessingRequest.setRuntimeEnvironment(new IosRuntimeEnvironment());
+        eventProcessingRequest.setEvents(Collections.singletonList(event));
         event.setRequest(eventProcessingRequest);
 
         event.setPayload("{\"aps\":{\"content-available\":1 }, \"data\":{\"route\":\"example\", \"tag\":\"example\", \"body\":\"example\"}, \"route\":\"example\", \"type\":\"marketing\", \"itbl\":{\"campaignId\":12345, \"messageId\":\"1dce4e505b11111ca1111d6fdd774fbd\", \"templateId\":54321, \"isGhostPush\":false } }");
@@ -354,7 +361,7 @@ public class IterableExtensionTest {
         long timeStamp = System.currentTimeMillis();
         event.setTimestamp(timeStamp);
 
-        extension.processPushMessageReceiptEvent(event);
+        extension.processEventProcessingRequest(eventProcessingRequest);
 
         ArgumentCaptor<TrackPushOpenRequest> argument = ArgumentCaptor.forClass(TrackPushOpenRequest.class);
         Mockito.verify(extension.iterableService).trackPushOpen(Mockito.any(), argument.capture());
@@ -369,7 +376,7 @@ public class IterableExtensionTest {
 
         IOException exception2 = null;
         try {
-            extension.processPushMessageReceiptEvent(event);
+            extension.processEventProcessingRequest(eventProcessingRequest);
         } catch (IOException ioe) {
             exception2 = ioe;
         }
@@ -381,9 +388,16 @@ public class IterableExtensionTest {
      * Verify that push message receipt event is not handled when Iterable SDK is installed
      */
     @Test
-    public void testProcessPushMessageReceiptEventWithSDK() throws Exception {
+    public void testProcessPushOpenEventWithSDK() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
+        Call callMock = Mockito.mock(Call.class);
+        Mockito.when(extension.iterableService.userUpdate(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        IterableApiResponse apiResponse = new IterableApiResponse();
+        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
+        Response<IterableApiResponse> response = Response.success(apiResponse);
+        Mockito.when(callMock.execute()).thenReturn(response);
 
         EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
         Map<String, String> integrationAttributes = new HashMap<>();
@@ -394,14 +408,15 @@ public class IterableExtensionTest {
         userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
         eventProcessingRequest.setUserIdentities(userIdentities);
         eventProcessingRequest.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
-        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        PushMessageOpenEvent event = new PushMessageOpenEvent();
         event.setRequest(eventProcessingRequest);
+        eventProcessingRequest.setEvents(Collections.singletonList(event));
         event.setPayload("{\"google.sent_time\":1507657706679,\"body\":\"example\",\"from\":\"674988899928\",\"itbl\":\"{\\\"campaignId\\\":12345,\\\"isGhostPush\\\":false,\\\"messageId\\\":\\\"1dce4e505b11111ca1111d6fdd774fbd\\\",\\\"templateId\\\":54321}\",\"google.message_id\":\"0:1507657706689231%62399b94f9fd7ecd\"}");
 
         long timeStamp = System.currentTimeMillis();
         event.setTimestamp(timeStamp);
 
-        extension.processPushMessageReceiptEvent(event);
+        extension.processEventProcessingRequest(eventProcessingRequest);
 
         Mockito.verify(extension.iterableService, never()).trackPushOpen(Mockito.any(), Mockito.any());
     }

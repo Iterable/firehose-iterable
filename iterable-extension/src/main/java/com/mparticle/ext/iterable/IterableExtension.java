@@ -482,7 +482,6 @@ public class IterableExtension extends MessageProcessor {
         List<Event.Type> supportedEventTypes = Arrays.asList(
                 Event.Type.CUSTOM_EVENT,
                 Event.Type.PUSH_SUBSCRIPTION,
-                Event.Type.PUSH_MESSAGE_RECEIPT,
                 Event.Type.PUSH_MESSAGE_OPEN,
                 Event.Type.USER_IDENTITY_CHANGE,
                 Event.Type.PRODUCT_ACTION);
@@ -648,44 +647,6 @@ public class IterableExtension extends MessageProcessor {
 
         });
         return converted;
-    }
-
-    @Override
-    public void processPushMessageReceiptEvent(PushMessageReceiptEvent event) throws IOException {
-        // Skip processing if the SDK is present - it tracks opens automatically
-        if (hasBundledSDK(event.getRequest())) {
-            return;
-        }
-
-        TrackPushOpenRequest request = new TrackPushOpenRequest();
-        if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
-            addUserIdentitiesToRequest(request, event.getRequest());
-            if (request.email == null && request.userId == null) {
-                throw new IOException("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
-            }
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
-            if (payload.containsKey("itbl")) {
-                //Android and iOS have differently encoded payload formats. See the tests for examples.
-                if (event.getRequest().getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
-                    Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
-                    request.messageId = (String) iterableMap.get("messageId");
-                } else {
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
-                    request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
-                }
-                request.createdAt = (int) (event.getTimestamp() / 1000.0);
-                Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                if (response.isSuccessful() && !response.body().isSuccess()) {
-                    throw new IOException(response.body().toString());
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending push-open to Iterable: HTTP " + response.code());
-                }
-            }
-        }
     }
 
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
