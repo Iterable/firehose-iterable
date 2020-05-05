@@ -475,8 +475,16 @@ public class IterableExtension extends MessageProcessor {
                         .setIsChecked(true)
                         .setDescription("If enabled, mParticle will attempt to coerce string attributes into scalar types (integer, boolean, and float).")
         );
-        // userIdField setting is set up manually in mParticle so it is not specified here
         eventProcessingRegistration.setAccountSettings(eventSettings);
+
+        List<Setting> connectionSettings = new ArrayList<>();
+        connectionSettings.add(
+                new TextSetting(SETTING_USER_ID_FIELD, "User ID")
+                        .setIsRequired(true)
+                        .setDefaultValue(USER_ID_FIELD_CUSTOMER_ID)
+                        .setDescription("Select which user identity to forward to Iterable as your customer's user ID.")
+        );
+        eventProcessingRegistration.setConnectionSettings(connectionSettings);
 
         // Specify supported event types
         List<Event.Type> supportedEventTypes = Arrays.asList(
