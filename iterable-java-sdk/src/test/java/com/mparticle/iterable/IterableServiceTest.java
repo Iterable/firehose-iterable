@@ -153,8 +153,9 @@ public class IterableServiceTest {
     public void testListUnsubscribe() throws Exception {
         UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
         unsubscribeRequest.listId = 81935;
-        Unsubscriber user = new Unsubscriber();
+        ApiUser user = new ApiUser();
         user.email = "newtestsubscriber@mparticle.com";
+        user.userId = "newtestsubscriber";
         unsubscribeRequest.subscribers = new LinkedList<>();
         unsubscribeRequest.subscribers.add(user);
         Response<ListResponse> response = iterableService.listUnsubscribe(ITERABLE_API_KEY, unsubscribeRequest).execute();
