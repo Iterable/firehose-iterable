@@ -450,10 +450,15 @@ public class IterableExtension extends MessageProcessor {
                 .setIsRequired(true)
                 .setIsConfidential(true)
                 .setDescription("API key used to connect to the Iterable API - see the Integrations section of your Iterable account.");
+        Setting userIdField = new TextSetting(SETTING_USER_ID_FIELD, "User ID")
+                .setIsRequired(true)
+                .setDefaultValue(USER_ID_FIELD_CUSTOMER_ID)
+                .setDescription("Select which user identity to forward to Iterable as your customer's user ID.");
+
+        audienceSettings.add(apiKey);
+        audienceSettings.add(userIdField);
 
         eventSettings.add(apiKey);
-        audienceSettings.add(apiKey);
-
         eventSettings.add(
                 new TextSetting(SETTING_GCM_NAME_KEY, "GCM Push Integration Name")
                         .setIsRequired(false)
@@ -478,12 +483,7 @@ public class IterableExtension extends MessageProcessor {
         eventProcessingRegistration.setAccountSettings(eventSettings);
 
         List<Setting> connectionSettings = new ArrayList<>();
-        connectionSettings.add(
-                new TextSetting(SETTING_USER_ID_FIELD, "User ID")
-                        .setIsRequired(true)
-                        .setDefaultValue(USER_ID_FIELD_CUSTOMER_ID)
-                        .setDescription("Select which user identity to forward to Iterable as your customer's user ID.")
-        );
+        connectionSettings.add(userIdField);
         eventProcessingRegistration.setConnectionSettings(connectionSettings);
 
         // Specify supported event types
@@ -698,7 +698,7 @@ public class IterableExtension extends MessageProcessor {
 
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
         HashMap<Integer, List<ApiUser>> additions = new HashMap<>();
-        HashMap<Integer, List<Unsubscriber>> removals = new HashMap<>();
+        HashMap<Integer, List<ApiUser>> removals = new HashMap<>();
         for (UserProfile profile : request.getUserProfiles()) {
             UserRequest userRequest = new UserRequest() {};
             addUserIdentitiesToRequest(userRequest, profile, request.getAccount());
@@ -724,12 +724,13 @@ public class IterableExtension extends MessageProcessor {
                     for (Audience audience : removedAudiences) {
                         Map<String, String> audienceSettings = audience.getAudienceSubscriptionSettings();
                         int listId = Integer.parseInt(audienceSettings.get(SETTING_LIST_ID));
-                        Unsubscriber unsubscriber = new Unsubscriber();
-                        unsubscriber.email = userRequest.email;
+                        ApiUser user = new ApiUser();
+                        user.email = userRequest.email;
+                        user.userId = userRequest.userId;
                         if (!removals.containsKey(listId)) {
                             removals.put(listId, new LinkedList<>());
                         }
-                        removals.get(listId).add(unsubscriber);
+                        removals.get(listId).add(user);
                     }
                 }
             }
@@ -754,7 +755,7 @@ public class IterableExtension extends MessageProcessor {
             }
         }
 
-        for (Map.Entry<Integer, List<Unsubscriber>> entry : removals.entrySet()) {
+        for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
             UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
             unsubscribeRequest.listId = entry.getKey();
             unsubscribeRequest.subscribers = entry.getValue();
