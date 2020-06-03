@@ -19,6 +19,11 @@ public class TrackRequest extends UserRequest {
      */
     public Map<String, Object> dataFields;
     /**
+     * Optional event id. If an event already exists with this id, the event will be updated. If none is specified,
+     * a new id will automatically be generated and returned.
+     */
+    public String id;
+    /**
      * Campaign tied to conversion
      */
     public Integer campaignId;

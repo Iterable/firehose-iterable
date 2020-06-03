@@ -280,6 +280,7 @@ public class IterableExtension extends MessageProcessor {
     public void processProductActionEvent(ProductActionEvent event) throws IOException {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
             TrackPurchaseRequest purchaseRequest = new TrackPurchaseRequest();
+            purchaseRequest.id = event.getId().toString();
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
             ApiUser apiUser = new ApiUser();
             addUserIdentitiesToRequest(apiUser, event.getRequest());
@@ -294,11 +295,7 @@ public class IterableExtension extends MessageProcessor {
             }
 
             Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
-            if (response.isSuccessful() && !response.body().isSuccess()) {
-                throw new IOException(response.body().toString());
-            } else if (!response.isSuccessful()) {
-                throw new IOException("Error sending custom event to Iterable: HTTP " + response.code());
-            }
+            handleIterableResponse(response);
         }
     }
 
@@ -495,6 +492,9 @@ public class IterableExtension extends MessageProcessor {
                 Event.Type.USER_IDENTITY_CHANGE,
                 Event.Type.PRODUCT_ACTION);
 
+        // Specify maximum data age (especially relevant for Event Replays)
+        eventProcessingRegistration.setMaxDataAgeHours(365*24);
+
         eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
         response.setEventProcessingRegistration(eventProcessingRegistration);
         AudienceProcessingRegistration audienceRegistration = new AudienceProcessingRegistration();
@@ -608,16 +608,13 @@ public class IterableExtension extends MessageProcessor {
         }
 
         TrackRequest request = new TrackRequest(event.getName());
+        request.id = event.getId().toString();
         request.createdAt = (int) (event.getTimestamp() / 1000.0);
         request.dataFields = attemptTypeConversion(event.getAttributes());
         addUserIdentitiesToRequest(request, event.getRequest());
 
         Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending custom event to Iterable: HTTP " + response.code());
-        }
+        handleIterableResponse(response);
     }
 
     /**
@@ -803,6 +800,21 @@ public class IterableExtension extends MessageProcessor {
         Map<String, String> integrationAttributes = processingRequest.getIntegrationAttributes();
         return integrationAttributes != null &&
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
+    }
+
+    private void handleIterableResponse(Response<IterableApiResponse> iterableResponse) throws IOException {
+        // consider OkHttp Interceptor if this will be added to all methods
+        if (iterableResponse.isSuccessful() && !iterableResponse.body().isSuccess()) {
+            throw new IOException(iterableResponse.body().toString());
+        } else if (!iterableResponse.isSuccessful()) {
+            if (iterableResponse.code() == 429 ) {
+                IterableLambdaResponse lambdaResponse = new IterableLambdaResponse();
+                lambdaResponse.statusCode = lambdaResponse.TOO_MANY_REQUESTS_CODE;
+                lambdaResponse.message = lambdaResponse.ERROR_MESSAGE;
+            } else {
+                throw new IOException("Error sending custom event to Iterable: HTTP " + iterableResponse.code());
+            }
+        }
     }
 
 }
