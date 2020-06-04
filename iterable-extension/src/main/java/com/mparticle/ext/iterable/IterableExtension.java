@@ -493,7 +493,7 @@ public class IterableExtension extends MessageProcessor {
                 Event.Type.PRODUCT_ACTION);
 
         // Specify maximum data age (especially relevant for Event Replays)
-        eventProcessingRegistration.setMaxDataAgeHours(365*24);
+        eventProcessingRegistration.setMaxDataAgeHours(-1);
 
         eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
         response.setEventProcessingRegistration(eventProcessingRegistration);
@@ -803,14 +803,11 @@ public class IterableExtension extends MessageProcessor {
     }
 
     private void handleIterableResponse(Response<IterableApiResponse> iterableResponse) throws IOException {
-        // consider OkHttp Interceptor if this will be added to all methods
         if (iterableResponse.isSuccessful() && !iterableResponse.body().isSuccess()) {
             throw new IOException(iterableResponse.body().toString());
         } else if (!iterableResponse.isSuccessful()) {
-            if (iterableResponse.code() == 429 ) {
-                IterableLambdaResponse lambdaResponse = new IterableLambdaResponse();
-                lambdaResponse.statusCode = lambdaResponse.TOO_MANY_REQUESTS_CODE;
-                lambdaResponse.message = lambdaResponse.ERROR_MESSAGE;
+            if (iterableResponse.code() == 429) {
+                throw new TooManyRequestsException();
             } else {
                 throw new IOException("Error sending custom event to Iterable: HTTP " + iterableResponse.code());
             }

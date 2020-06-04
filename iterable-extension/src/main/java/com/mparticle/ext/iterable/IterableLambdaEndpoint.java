@@ -1,7 +1,6 @@
 package com.mparticle.ext.iterable;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.mparticle.sdk.model.Message;
 import com.mparticle.sdk.model.MessageSerializer;
@@ -9,6 +8,8 @@ import com.mparticle.sdk.model.MessageSerializer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class IterableLambdaEndpoint implements RequestStreamHandler {
@@ -19,7 +20,16 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
     @Override
     public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
         Message request = serializer.deserialize(input, Message.class);
-        Message response = processor.processMessage(request);
-        serializer.serialize(output, response);
+
+        try {
+            Message message = processor.processMessage(request);
+            SuccessResponse success = new SuccessResponse(200, message);
+            serializer.serialize(output, success);
+        } catch (TooManyRequestsException e) {
+            Map<String, String> body = new HashMap<>();
+            body.put("message", "Iterable rate limit exceeded");
+            ErrorResponse error = new ErrorResponse(429, body);
+            serializer.serialize(output, error);
+        }
     }
 }
