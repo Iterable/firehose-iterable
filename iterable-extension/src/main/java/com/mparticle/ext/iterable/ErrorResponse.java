@@ -11,6 +11,8 @@ public class ErrorResponse {
     @JsonProperty(value="body", required=true)
     public Map<String, String> body;
 
+    public ErrorResponse() {}
+
     public ErrorResponse(int statusCode, Map<String, String> body) {
         this.statusCode = statusCode;
         this.body = body;

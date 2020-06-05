@@ -10,6 +10,8 @@ public class SuccessResponse {
     @JsonProperty(value="body", required=true)
     public Message body;
 
+    public SuccessResponse() {}
+
     public SuccessResponse(int statusCode, Message body) {
         this.statusCode = statusCode;
         this.body = body;

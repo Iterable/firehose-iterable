@@ -80,11 +80,7 @@ public class IterableExtension extends MessageProcessor {
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
-                        if (response.isSuccessful() && !response.body().isSuccess()) {
-                            throw new IOException(response.body().toString());
-                        } else if (!response.isSuccessful()) {
-                            throw new IOException("Error sending push-open to Iterable: HTTP " + response.code());
-                        }
+                        handleIterableResponse(response);
                     }
                 }
             }
@@ -167,11 +163,7 @@ public class IterableExtension extends MessageProcessor {
         }
 
         Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending push subscription to Iterable: " + response.body().toString());
-        }
+        handleIterableResponse(response);
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -203,12 +195,7 @@ public class IterableExtension extends MessageProcessor {
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response);
             }
 
             //convert from old to new email
@@ -218,12 +205,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response);
             }
         }
 
@@ -233,12 +215,7 @@ public class IterableExtension extends MessageProcessor {
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateUser() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response);
             }
         }
     }
@@ -280,7 +257,9 @@ public class IterableExtension extends MessageProcessor {
     public void processProductActionEvent(ProductActionEvent event) throws IOException {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
             TrackPurchaseRequest purchaseRequest = new TrackPurchaseRequest();
-            purchaseRequest.id = event.getId().toString();
+            if (event.getId() != null) {
+                purchaseRequest.id = event.getId().toString();
+            }
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
             ApiUser apiUser = new ApiUser();
             addUserIdentitiesToRequest(apiUser, event.getRequest());
@@ -492,7 +471,7 @@ public class IterableExtension extends MessageProcessor {
                 Event.Type.USER_IDENTITY_CHANGE,
                 Event.Type.PRODUCT_ACTION);
 
-        // Specify maximum data age (especially relevant for Event Replays)
+        // Specify an unlimited maximum data age (primarily for Event Replays)
         eventProcessingRegistration.setMaxDataAgeHours(-1);
 
         eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
@@ -552,11 +531,7 @@ public class IterableExtension extends MessageProcessor {
             return false;
         }
         Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending update subscriptions event to Iterable: HTTP " + response.code());
-        }
+        handleIterableResponse(response);
         return true;
 
     }
@@ -684,11 +659,7 @@ public class IterableExtension extends MessageProcessor {
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                if (response.isSuccessful() && !response.body().isSuccess()) {
-                    throw new IOException(response.body().toString());
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending push-open to Iterable: HTTP " + response.code());
-                }
+                handleIterableResponse(response);
             }
         }
     }
@@ -802,7 +773,7 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    private void handleIterableResponse(Response<IterableApiResponse> iterableResponse) throws IOException {
+    static void handleIterableResponse(Response<IterableApiResponse> iterableResponse) throws IOException {
         if (iterableResponse.isSuccessful() && !iterableResponse.body().isSuccess()) {
             throw new IOException(iterableResponse.body().toString());
         } else if (!iterableResponse.isSuccessful()) {

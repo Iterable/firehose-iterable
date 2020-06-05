@@ -30,6 +30,11 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
             body.put("message", "Iterable rate limit exceeded");
             ErrorResponse error = new ErrorResponse(429, body);
             serializer.serialize(output, error);
+        } catch (IOException e) {
+            Map<String, String> body = new HashMap<>();
+            body.put("message", e.getMessage());
+            ErrorResponse error = new ErrorResponse(500, body);
+            serializer.serialize(output, error);
         }
     }
 }

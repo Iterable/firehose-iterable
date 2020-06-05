@@ -9,6 +9,7 @@ import com.mparticle.sdk.model.registration.Account;
 import com.mparticle.sdk.model.registration.ModuleRegistrationResponse;
 import com.mparticle.sdk.model.registration.Setting;
 import com.mparticle.sdk.model.registration.UserIdentityPermission;
+import okhttp3.ResponseBody;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -248,6 +249,7 @@ public class IterableExtensionTest {
         assertEquals("123456", argument.getValue().userId);
         assertEquals("some attribute value", argument.getValue().dataFields.get("some attribute key"));
         assertEquals((int) (timeStamp / 1000.0), argument.getValue().createdAt + 0);
+        assertNotNull(argument.getValue().id);
 
         apiResponse.code = "anything but success";
 
@@ -623,6 +625,7 @@ public class IterableExtensionTest {
         assertEquals(trackPurchaseRequest.user.userId, "123456");
         assertEquals(trackPurchaseRequest.items.size(), 2);
         assertEquals(trackPurchaseRequest.total, new BigDecimal(101d));
+        assertNotNull(trackPurchaseRequest.id);
     }
 
     @Test
@@ -788,6 +791,28 @@ public class IterableExtensionTest {
             exception = ioe;
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
+    }
+
+    @Test
+    public void testHandleIterableSuccess() throws IOException{
+        IterableApiResponse iterableApiResponse = new IterableApiResponse();
+        iterableApiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
+        Response<IterableApiResponse> r = Response.success(iterableApiResponse);
+        IterableExtension.handleIterableResponse(r);
+    }
+
+    @Test(expected = TooManyRequestsException.class)
+    public void testHandleIterable429() throws IOException {
+        IterableApiResponse iterableApiResponse = new IterableApiResponse();
+        Response r = Response.error(429, ResponseBody.create(null, ""));
+        IterableExtension.handleIterableResponse(r);
+    }
+
+    @Test(expected = IOException.class)
+    public void testHandleIterableError() throws IOException {
+        IterableApiResponse iterableApiResponse = new IterableApiResponse();
+        Response r = Response.error(500, ResponseBody.create(null, ""));
+        IterableExtension.handleIterableResponse(r);
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
