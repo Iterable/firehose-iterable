@@ -796,6 +796,9 @@ public class IterableExtension extends MessageProcessor {
         }
         if (shouldUseMPID(account)) {
             request.userId = mpid;
+            if (request.email == null && mpid != null) {
+                request.email = mpid + "@placeholder.email";
+            }
         }
     }
 
