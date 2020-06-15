@@ -647,18 +647,17 @@ public class IterableExtensionTest {
         for (ApiUser user : subscribeRequests.get(0).subscribers) {
             switch (user.email) {
                 case "m1@placeholder.email":
-                    // testUserProfile should have email: "<MPID>@placeholder.email" and userId: "<MPID>"
+                    // testUserProfile
                     assertEquals("m1", user.userId);
                     expectedUserSubscribeCount++;
                     break;
                 case "email_only@iterable.com":
-                    // testUserProfileWithEmail should have email: "email@itearble.com" and userId: "<MPID>"
+                    // testUserProfileWithEmail
                     assertEquals("m2", user.userId);
                     expectedUserSubscribeCount++;
                     break;
                 case "email_and_id@iterable.com":
-                    // testUserProfileWIthEmailAndCustomerId should have email: "email_and_id@iterable.com"
-                    // and userId: "<MPID>"
+                    // testUserProfileWIthEmailAndCustomerId
                     assertEquals("m3", user.userId);
                     expectedUserSubscribeCount++;
                     break;
@@ -674,17 +673,17 @@ public class IterableExtensionTest {
         for (ApiUser user : unsubscribeRequests.get(0).subscribers) {
             switch (user.email) {
                 case "m1@placeholder.email":
-                    // testUserProfile should have email: "<MPID>@placeholder.email" and userId: "<MPID>"
+                    // testUserProfile
                     assertEquals("m1", user.userId);
                     expectedUserUnsubscribeCount++;
                     break;
                 case "email_only@iterable.com":
-                    // testUserProfileWithEmail should have email: "email@itearble.com" and userId: "<MPID>"
+                    // testUserProfileWithEmail
                     assertEquals("m2", user.userId);
                     expectedUserUnsubscribeCount++;
                     break;
                 case "email_and_id@iterable.com":
-                    // testUserProfileWIthEmailAndCustomerId should have email: "email_and_id@iterable.com"
+                    // testUserProfileWIthEmailAndCustomerId
                     // and userId: "<MPID>"
                     assertEquals("m3", user.userId);
                     expectedUserUnsubscribeCount++;
