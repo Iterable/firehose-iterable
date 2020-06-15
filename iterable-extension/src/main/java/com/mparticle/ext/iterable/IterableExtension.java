@@ -696,6 +696,21 @@ public class IterableExtension extends MessageProcessor {
         }
     }
 
+    /**
+     * Map an AudienceMembershipChangeRequest to Iterable's list subscribe and unsubscribe requests.
+     *
+     * Requests are made to the /api/lists/subscribe and /api/lists/unsubscribe endpoint. Each request
+     * will contain multiple users if there are multiple users being added or removed from the same
+     * list. No dataFields are sent with the users.
+     *
+     * https://api.iterable.com/api/docs#lists_subscribe
+     * https://api.iterable.com/api/docs#lists_unsubscribe
+     *
+     * @param request the request
+     * @return a response that indicates the request was processed successfully
+     * @throws IOException
+     */
+    @Override
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
         HashMap<Integer, List<ApiUser>> additions = new HashMap<>();
         HashMap<Integer, List<ApiUser>> removals = new HashMap<>();
