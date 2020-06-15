@@ -28,6 +28,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String SETTING_USER_ID_FIELD = "userIdField";
     public static final String USER_ID_FIELD_CUSTOMER_ID = "customerId";
     public static final String USER_ID_FIELD_MPID = "mpid";
+    public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     IterableService iterableService;
 
     @Override
@@ -812,7 +813,7 @@ public class IterableExtension extends MessageProcessor {
         if (shouldUseMPID(account)) {
             request.userId = mpid;
             if (request.email == null && mpid != null) {
-                request.email = mpid + "@placeholder.email";
+                request.email = mpid + PLACEHOLDER_EMAIL_DOMAIN;
             }
         }
     }
