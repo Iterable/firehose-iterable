@@ -406,7 +406,7 @@ public class IterableExtension extends MessageProcessor {
         if (isEmpty(id)) {
             throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
         }
-        return id + "@placeholder.email";
+        return id + PLACEHOLDER_EMAIL_DOMAIN;
     }
 
     @Override
