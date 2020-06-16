@@ -642,7 +642,7 @@ public class IterableExtensionTest {
                 (a, b) -> a.listId > b.listId ? 1 : a.listId == b.listId ? 0 : -1
         );
         assertEquals(1, subscribeRequests.get(0).listId.intValue());
-        assertEquals(1, subscribeRequests.get(1).listId.intValue());
+        assertEquals(2, subscribeRequests.get(1).listId.intValue());
         int expectedUserSubscribeCount = 0;
         for (ApiUser user : subscribeRequests.get(0).subscribers) {
             switch (user.email) {
