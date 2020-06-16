@@ -641,8 +641,8 @@ public class IterableExtensionTest {
                 subscribeRequests,
                 (a, b) -> a.listId > b.listId ? 1 : a.listId == b.listId ? 0 : -1
         );
-        assertEquals(new Integer(1), subscribeRequests.get(0).listId);
-        assertEquals(new Integer(2), subscribeRequests.get(1).listId);
+        assertEquals(1, subscribeRequests.get(0).listId.intValue());
+        assertEquals(1, subscribeRequests.get(1).listId.intValue());
         int expectedUserSubscribeCount = 0;
         for (ApiUser user : subscribeRequests.get(0).subscribers) {
             switch (user.email) {
@@ -668,7 +668,7 @@ public class IterableExtensionTest {
         ArgumentCaptor<UnsubscribeRequest> unsubArg = ArgumentCaptor.forClass(UnsubscribeRequest.class);
         List<UnsubscribeRequest> unsubscribeRequests = unsubArg.getAllValues();
         Mockito.verify(iterableServiceMock, Mockito.times(1)).listUnsubscribe(Mockito.any(), unsubArg.capture());
-        assertEquals(new Integer(3), unsubscribeRequests.get(0).listId);
+        assertEquals(3, unsubscribeRequests.get(0).listId.intValue());
         int expectedUserUnsubscribeCount = 0;
         for (ApiUser user : unsubscribeRequests.get(0).subscribers) {
             switch (user.email) {
@@ -684,7 +684,6 @@ public class IterableExtensionTest {
                     break;
                 case "email_and_id@iterable.com":
                     // testUserProfileWIthEmailAndCustomerId
-                    // and userId: "<MPID>"
                     assertEquals("m3", user.userId);
                     expectedUserUnsubscribeCount++;
                     break;
