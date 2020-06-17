@@ -28,6 +28,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String SETTING_USER_ID_FIELD = "userIdField";
     public static final String USER_ID_FIELD_CUSTOMER_ID = "customerId";
     public static final String USER_ID_FIELD_MPID = "mpid";
+    public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     IterableService iterableService;
 
     @Override
@@ -405,7 +406,7 @@ public class IterableExtension extends MessageProcessor {
         if (isEmpty(id)) {
             throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
         }
-        return id + "@placeholder.email";
+        return id + PLACEHOLDER_EMAIL_DOMAIN;
     }
 
     @Override
@@ -696,6 +697,21 @@ public class IterableExtension extends MessageProcessor {
         }
     }
 
+    /**
+     * Map an AudienceMembershipChangeRequest to Iterable's list subscribe and unsubscribe requests.
+     *
+     * Requests are made to the /api/lists/subscribe and /api/lists/unsubscribe endpoint. Each request
+     * will contain multiple users if there are multiple users being added or removed from the same
+     * list. No dataFields are sent with the users.
+     *
+     * https://api.iterable.com/api/docs#lists_subscribe
+     * https://api.iterable.com/api/docs#lists_unsubscribe
+     *
+     * @param request the request
+     * @return a response that indicates the request was processed successfully
+     * @throws IOException
+     */
+    @Override
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
         HashMap<Integer, List<ApiUser>> additions = new HashMap<>();
         HashMap<Integer, List<ApiUser>> removals = new HashMap<>();
@@ -796,6 +812,9 @@ public class IterableExtension extends MessageProcessor {
         }
         if (shouldUseMPID(account)) {
             request.userId = mpid;
+            if (request.email == null) {
+                request.email = mpid + PLACEHOLDER_EMAIL_DOMAIN;
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import com.mparticle.sdk.model.registration.Account;
 import com.mparticle.sdk.model.registration.ModuleRegistrationResponse;
 import com.mparticle.sdk.model.registration.Setting;
 import com.mparticle.sdk.model.registration.UserIdentityPermission;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -19,15 +20,73 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static com.mparticle.ext.iterable.IterableExtension.SETTING_API_KEY;
-import static com.mparticle.ext.iterable.IterableExtension.SETTING_COERCE_STRINGS_TO_SCALARS;
-import static com.mparticle.ext.iterable.IterableExtension.SETTING_USER_ID_FIELD;
+import static com.mparticle.ext.iterable.IterableExtension.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 public class IterableExtensionTest {
     private static final String TEST_API_KEY = "foo api key";
+    private IterableExtension testIterableExtension;
+    private IterableService iterableServiceMock;
+    private Call callMock;
+    private Audience testAudienceAddition1;
+    private Audience testAudienceAddition2;
+    private Audience testAudienceDeletion3;
+    private List<Audience> testAudienceList;
+    private UserProfile testUserProfile;
+    private UserProfile testUserProfileWithEmail;
+    private UserProfile testUserProfileWithEmailAndCustomerId;
+    private Account testAccount;
+    private IterableApiResponse testIterableApiSuccess;
+    private Response testSuccessResponse;
+
+    @Before
+    public void setup() {
+        testIterableExtension = new IterableExtension();
+        iterableServiceMock = Mockito.mock(IterableService.class);
+        callMock = Mockito.mock(Call.class);
+
+        testAudienceAddition1 = new Audience();
+        Map<String, String> audienceSubscriptionSettings = new HashMap<>();
+        audienceSubscriptionSettings.put(IterableExtension.SETTING_LIST_ID, "1");
+        testAudienceAddition1.setAudienceSubscriptionSettings(audienceSubscriptionSettings);
+        testAudienceAddition1.setAudienceAction(Audience.AudienceAction.ADD);
+        testAudienceAddition2 = new Audience();
+        Map<String, String> audienceSubscriptionSettings2 = new HashMap<>();
+        audienceSubscriptionSettings2.put(IterableExtension.SETTING_LIST_ID, "2");
+        testAudienceAddition2.setAudienceSubscriptionSettings(audienceSubscriptionSettings2);
+        testAudienceAddition2.setAudienceAction(Audience.AudienceAction.ADD);
+        testAudienceDeletion3 = new Audience();
+        Map<String, String> audienceSubscriptionSettings3 = new HashMap<>();
+        audienceSubscriptionSettings3.put(IterableExtension.SETTING_LIST_ID, "3");
+        testAudienceDeletion3.setAudienceSubscriptionSettings(audienceSubscriptionSettings3);
+        testAudienceDeletion3.setAudienceAction(Audience.AudienceAction.DELETE);
+        testAudienceList = new LinkedList<>();
+        testAudienceList.add(testAudienceAddition2);
+        testAudienceList.add(testAudienceAddition1);
+        testAudienceList.add(testAudienceDeletion3);
+
+        testUserProfile = new UserProfile();
+        testUserProfileWithEmail = new UserProfile();
+        List<UserIdentity> userIdentities1 = new LinkedList<>();
+        userIdentities1.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "email_only@iterable.com"));
+        testUserProfileWithEmail.setUserIdentities(userIdentities1);
+        testUserProfileWithEmailAndCustomerId = new UserProfile();
+        List<UserIdentity> userIdentities2 = new LinkedList<>();
+        userIdentities2.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "email_and_id@iterable.com"));
+        userIdentities2.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "c1"));
+        testUserProfileWithEmailAndCustomerId.setUserIdentities(userIdentities2);
+
+        testAccount = new Account();
+        Map<String, String> accountSettings = new HashMap<>();
+        accountSettings.put(SETTING_API_KEY, "some api key");
+        testAccount.setAccountSettings(accountSettings);
+
+        testIterableApiSuccess = new IterableApiResponse();
+        testIterableApiSuccess.code = IterableApiResponse.SUCCESS_MESSAGE;
+        testSuccessResponse = Response.success(testIterableApiSuccess);
+    }
 
     @org.junit.Test
     public void testProcessEventProcessingRequest() throws Exception {
@@ -546,6 +605,91 @@ public class IterableExtensionTest {
             }
         }
         assertEquals(3, i);
+    }
+
+    @Test
+    public void testProcessAudienceMembershipChangeWithMPID() throws IOException {
+        testIterableExtension.iterableService = iterableServiceMock;
+        Mockito.when(iterableServiceMock.listSubscribe(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        Mockito.when(iterableServiceMock.listUnsubscribe(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        Mockito.when(callMock.execute()).thenReturn(testSuccessResponse);
+
+        List userProfileList = new LinkedList<UserProfile>();
+        testUserProfile.setMpId("m1");
+        testUserProfile.setAudiences(testAudienceList);
+        testUserProfileWithEmail.setMpId("m2");
+        testUserProfileWithEmail.setAudiences(testAudienceList);
+        testUserProfileWithEmailAndCustomerId.setMpId("m3");
+        testUserProfileWithEmailAndCustomerId.setAudiences(testAudienceList);
+        userProfileList.add(testUserProfile);
+        userProfileList.add(testUserProfileWithEmail);
+        userProfileList.add(testUserProfileWithEmailAndCustomerId);
+
+        AudienceMembershipChangeRequest request = new AudienceMembershipChangeRequest();
+        testAccount.getAccountSettings().put(SETTING_USER_ID_FIELD, USER_ID_FIELD_MPID);
+        request.setAccount(testAccount);
+        request.setUserProfiles(userProfileList);
+
+        testIterableExtension.processAudienceMembershipChangeRequest(request);
+
+        ArgumentCaptor<SubscribeRequest> subscribeArgs = ArgumentCaptor.forClass(SubscribeRequest.class);
+        List<SubscribeRequest> subscribeRequests = subscribeArgs.getAllValues();
+        Mockito.verify(iterableServiceMock, Mockito.times(2)).listSubscribe(Mockito.any(), subscribeArgs.capture());
+        Collections.sort(
+                subscribeRequests,
+                (a, b) -> a.listId > b.listId ? 1 : a.listId == b.listId ? 0 : -1
+        );
+        assertEquals(1, subscribeRequests.get(0).listId.intValue());
+        assertEquals(2, subscribeRequests.get(1).listId.intValue());
+        int expectedUserSubscribeCount = 0;
+        for (ApiUser user : subscribeRequests.get(0).subscribers) {
+            switch (user.email) {
+                case "m1@placeholder.email":
+                    // testUserProfile
+                    assertEquals("m1", user.userId);
+                    expectedUserSubscribeCount++;
+                    break;
+                case "email_only@iterable.com":
+                    // testUserProfileWithEmail
+                    assertEquals("m2", user.userId);
+                    expectedUserSubscribeCount++;
+                    break;
+                case "email_and_id@iterable.com":
+                    // testUserProfileWIthEmailAndCustomerId
+                    assertEquals("m3", user.userId);
+                    expectedUserSubscribeCount++;
+                    break;
+            }
+        }
+        assertEquals(3, expectedUserSubscribeCount);
+
+        ArgumentCaptor<UnsubscribeRequest> unsubArg = ArgumentCaptor.forClass(UnsubscribeRequest.class);
+        List<UnsubscribeRequest> unsubscribeRequests = unsubArg.getAllValues();
+        Mockito.verify(iterableServiceMock, Mockito.times(1)).listUnsubscribe(Mockito.any(), unsubArg.capture());
+        assertEquals(3, unsubscribeRequests.get(0).listId.intValue());
+        int expectedUserUnsubscribeCount = 0;
+        for (ApiUser user : unsubscribeRequests.get(0).subscribers) {
+            switch (user.email) {
+                case "m1@placeholder.email":
+                    // testUserProfile
+                    assertEquals("m1", user.userId);
+                    expectedUserUnsubscribeCount++;
+                    break;
+                case "email_only@iterable.com":
+                    // testUserProfileWithEmail
+                    assertEquals("m2", user.userId);
+                    expectedUserUnsubscribeCount++;
+                    break;
+                case "email_and_id@iterable.com":
+                    // testUserProfileWIthEmailAndCustomerId
+                    assertEquals("m3", user.userId);
+                    expectedUserUnsubscribeCount++;
+                    break;
+            }
+        }
+        assertEquals(3, expectedUserUnsubscribeCount);
     }
 
     @org.junit.Test
