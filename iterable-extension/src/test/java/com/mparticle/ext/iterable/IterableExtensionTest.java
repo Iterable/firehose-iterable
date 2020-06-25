@@ -188,7 +188,7 @@ public class IterableExtensionTest {
         EventProcessingRequest request = createEventProcessingRequest();
         Map<String, String> userAttributes = new HashMap<String, String>();
         userAttributes.put("some attribute key", "some attribute value");
-        userAttributes.put(MPARTICLE_RESERVED_PHONE_ATTR, "+1555-876-5309");
+        userAttributes.put(MPARTICLE_RESERVED_PHONE_ATTR, "+1 (555) 876-5309");
         request.setUserAttributes(userAttributes);
         request.setUserIdentities(userIdentitiesWithEmail);
 
@@ -198,7 +198,7 @@ public class IterableExtensionTest {
                 .userUpdate(any(), args.capture());
 
         assertEquals("Reserved phone number attribute should be converted with non-digit characters removed",
-                "15558765309", args.getValue().dataFields.get("phoneNumber"));
+                "+15558765309", args.getValue().dataFields.get("phoneNumber"));
         assertEquals("Non-reserved attributes should be unchanged",
                 "some attribute value", args.getValue().dataFields.get("some attribute key"));
         assertNull("mParticle reserved attribute shouldn't be present",

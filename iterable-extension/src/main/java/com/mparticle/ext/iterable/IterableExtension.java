@@ -267,7 +267,7 @@ public class IterableExtension extends MessageProcessor {
         convertedAttrs.putAll(attributes);
         if (convertedAttrs.containsKey(MPARTICLE_RESERVED_PHONE_ATTR)) {
             String phoneNumber = convertedAttrs.get(MPARTICLE_RESERVED_PHONE_ATTR);
-            String formattedNumber = phoneNumber.replaceAll("[\\D]", "");
+            String formattedNumber = phoneNumber.replaceAll("[^0-9+]", "");
             convertedAttrs.put(ITERABLE_RESERVED_PHONE_ATTR, formattedNumber);
             convertedAttrs.remove(MPARTICLE_RESERVED_PHONE_ATTR);
         }
