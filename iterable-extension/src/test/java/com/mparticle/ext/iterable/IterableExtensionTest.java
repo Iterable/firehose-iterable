@@ -188,7 +188,7 @@ public class IterableExtensionTest {
         EventProcessingRequest request = createEventProcessingRequest();
         Map<String, String> userAttributes = new HashMap<String, String>();
         userAttributes.put("some attribute key", "some attribute value");
-        userAttributes.put(MPARTICLE_PHONE_FIELD, "+1555-876-5309");
+        userAttributes.put(MPARTICLE_RESERVED_PHONE_ATTR, "+1555-876-5309");
         request.setUserAttributes(userAttributes);
         request.setUserIdentities(userIdentitiesWithEmail);
 
@@ -202,7 +202,7 @@ public class IterableExtensionTest {
         assertEquals("Non-reserved attributes should be unchanged",
                 "some attribute value", args.getValue().dataFields.get("some attribute key"));
         assertNull("mParticle reserved attribute shouldn't be present",
-                args.getValue().dataFields.get(MPARTICLE_PHONE_FIELD));
+                args.getValue().dataFields.get(MPARTICLE_RESERVED_PHONE_ATTR));
     }
 
     @org.junit.Test

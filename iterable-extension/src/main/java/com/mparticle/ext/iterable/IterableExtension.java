@@ -29,8 +29,8 @@ public class IterableExtension extends MessageProcessor {
     public static final String USER_ID_FIELD_CUSTOMER_ID = "customerId";
     public static final String USER_ID_FIELD_MPID = "mpid";
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
-    public static final String MPARTICLE_PHONE_FIELD = "$Mobile";
-    public static final String ITERABLE_PHONE_FIELD = "phoneNumber";
+    public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
+    public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
     IterableService iterableService;
 
     @Override
@@ -265,11 +265,11 @@ public class IterableExtension extends MessageProcessor {
     private static Map<String, String> convertReservedAttributes(Map<String, String> attributes) {
         Map<String, String> convertedAttrs = new HashMap<String, String>();
         convertedAttrs.putAll(attributes);
-        if (convertedAttrs.containsKey(MPARTICLE_PHONE_FIELD)) {
-            String phoneNumber = convertedAttrs.get(MPARTICLE_PHONE_FIELD);
+        if (convertedAttrs.containsKey(MPARTICLE_RESERVED_PHONE_ATTR)) {
+            String phoneNumber = convertedAttrs.get(MPARTICLE_RESERVED_PHONE_ATTR);
             String formattedNumber = phoneNumber.replaceAll("[\\D]", "");
-            convertedAttrs.put(ITERABLE_PHONE_FIELD, formattedNumber);
-            convertedAttrs.remove(MPARTICLE_PHONE_FIELD);
+            convertedAttrs.put(ITERABLE_RESERVED_PHONE_ATTR, formattedNumber);
+            convertedAttrs.remove(MPARTICLE_RESERVED_PHONE_ATTR);
         }
         return convertedAttrs;
     }
