@@ -197,7 +197,7 @@ public class IterableExtensionTest {
         Mockito.verify(testIterableExtension.iterableService, times(1))
                 .userUpdate(any(), args.capture());
 
-        assertEquals("Reserved phone number attribute should be converted with special characters removed",
+        assertEquals("Reserved phone number attribute should be converted with non-digit characters removed",
                 "15558765309", args.getValue().dataFields.get("phoneNumber"));
         assertEquals("Non-reserved attributes should be unchanged",
                 "some attribute value", args.getValue().dataFields.get("some attribute key"));
