@@ -22,6 +22,7 @@ import java.util.*;
 
 import static com.mparticle.ext.iterable.IterableExtension.*;
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -40,6 +41,8 @@ public class IterableExtensionTest {
     private Account testAccount;
     private IterableApiResponse testIterableApiSuccess;
     private Response testSuccessResponse;
+    private LinkedList<UserIdentity> userIdentitiesWithEmail;
+    private LinkedList<UserIdentity> userIdentitiesWithEmailAndCustomerId;
 
     @Before
     public void setup() {
@@ -69,14 +72,17 @@ public class IterableExtensionTest {
 
         testUserProfile = new UserProfile();
         testUserProfileWithEmail = new UserProfile();
-        List<UserIdentity> userIdentities1 = new LinkedList<>();
-        userIdentities1.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "email_only@iterable.com"));
-        testUserProfileWithEmail.setUserIdentities(userIdentities1);
+        userIdentitiesWithEmail = new LinkedList<>();
+        userIdentitiesWithEmail.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW,
+                "email_only@iterable.com"));
+        testUserProfileWithEmail.setUserIdentities(userIdentitiesWithEmail);
         testUserProfileWithEmailAndCustomerId = new UserProfile();
-        List<UserIdentity> userIdentities2 = new LinkedList<>();
-        userIdentities2.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "email_and_id@iterable.com"));
-        userIdentities2.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "c1"));
-        testUserProfileWithEmailAndCustomerId.setUserIdentities(userIdentities2);
+        userIdentitiesWithEmailAndCustomerId = new LinkedList<>();
+        userIdentitiesWithEmailAndCustomerId.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW,
+                "email_and_id@iterable.com"));
+        userIdentitiesWithEmailAndCustomerId.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW,
+                "c1"));
+        testUserProfileWithEmailAndCustomerId.setUserIdentities(userIdentitiesWithEmailAndCustomerId);
 
         testAccount = new Account();
         Map<String, String> accountSettings = new HashMap<>();
@@ -170,6 +176,33 @@ public class IterableExtensionTest {
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
 
+    }
+
+    @Test
+    public void testReservedAttributeConversion() throws IOException {
+        testIterableExtension.iterableService = iterableServiceMock;
+        Mockito.when(iterableServiceMock.userUpdate(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        Mockito.when(callMock.execute()).thenReturn(testSuccessResponse);
+
+        EventProcessingRequest request = createEventProcessingRequest();
+        Map<String, String> userAttributes = new HashMap<String, String>();
+        userAttributes.put("some attribute key", "some attribute value");
+        userAttributes.put(MPARTICLE_PHONE_FIELD, "+1555-876-5309");
+        request.setUserAttributes(userAttributes);
+        request.setUserIdentities(userIdentitiesWithEmail);
+
+        testIterableExtension.updateUser(request);
+        ArgumentCaptor<UserUpdateRequest> args = ArgumentCaptor.forClass(UserUpdateRequest.class);
+        Mockito.verify(testIterableExtension.iterableService, times(1))
+                .userUpdate(any(), args.capture());
+
+        assertEquals("Reserved phone number attribute should be converted with special characters removed",
+                "15558765309", args.getValue().dataFields.get("phoneNumber"));
+        assertEquals("Non-reserved attributes should be unchanged",
+                "some attribute value", args.getValue().dataFields.get("some attribute key"));
+        assertNull("mParticle reserved attribute shouldn't be present",
+                args.getValue().dataFields.get(MPARTICLE_PHONE_FIELD));
     }
 
     @org.junit.Test
