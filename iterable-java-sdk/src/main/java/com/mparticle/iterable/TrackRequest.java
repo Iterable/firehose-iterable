@@ -15,6 +15,10 @@ public class TrackRequest extends UserRequest {
      */
     public Integer createdAt;
     /**
+     * Optional event id. If an event already exists with this id, the event will be updated.
+     */
+    public String id;
+    /**
      *  Additional data associated with event (i.e. item id, item amount),
      */
     public Map<String, Object> dataFields;
