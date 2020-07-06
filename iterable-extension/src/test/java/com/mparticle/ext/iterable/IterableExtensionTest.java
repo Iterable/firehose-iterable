@@ -340,6 +340,7 @@ public class IterableExtensionTest {
         assertEquals("123456", argument.getValue().userId);
         assertEquals("some attribute value", argument.getValue().dataFields.get("some attribute key"));
         assertEquals((int) (timeStamp / 1000.0), argument.getValue().createdAt + 0);
+        assertEquals(event.getId().toString(), argument.getValue().id);
 
         apiResponse.code = "anything but success";
 
@@ -800,6 +801,7 @@ public class IterableExtensionTest {
         assertEquals(trackPurchaseRequest.user.userId, "123456");
         assertEquals(trackPurchaseRequest.items.size(), 2);
         assertEquals(trackPurchaseRequest.total, new BigDecimal(101d));
+        assertEquals(trackPurchaseRequest.id, event.getId().toString());
     }
 
     @Test
