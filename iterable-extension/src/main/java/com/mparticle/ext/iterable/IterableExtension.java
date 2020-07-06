@@ -292,6 +292,15 @@ public class IterableExtension extends MessageProcessor {
         return chars == null || "".equals(chars);
     }
 
+    /**
+     * Map an mParticle `purchase` product_action to Iterable's `trackPurchase` request.
+     *
+     * mParticle product_action: https://docs.mparticle.com/developers/server/json-reference#product_action
+     * Iterable trackPurchase: https://api.iterable.com/api/docs#commerce_trackPurchase
+     *
+     * @param event the mParticle event
+     * @throws IOException
+     */
     @Override
     public void processProductActionEvent(ProductActionEvent event) throws IOException {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
@@ -620,6 +629,15 @@ public class IterableExtension extends MessageProcessor {
         return updateRequest;
     }
 
+    /**
+     * Map an mParticle `custom_event` to Iterable's `track` request.
+     *
+     * mParticle custom_event: https://docs.mparticle.com/developers/server/json-reference/#custom_event
+     * Iterable track: https://api.iterable.com/api/docs#events_track
+     *
+     * @param event the mParticle event
+     * @throws IOException
+     */
     @Override
     public void processCustomEvent(CustomEvent event) throws IOException {
         if (processSubscribeEvent(event)) {
@@ -719,16 +737,16 @@ public class IterableExtension extends MessageProcessor {
     }
 
     /**
-     * Map an AudienceMembershipChangeRequest to Iterable's list subscribe and unsubscribe requests.
+     * Map an mParticle `AudienceMembershipChangeRequest` to Iterable list `subscribe` and `unsubscribe` requests.
      *
-     * Requests are made to the /api/lists/subscribe and /api/lists/unsubscribe endpoint. Each request
-     * will contain multiple users if there are multiple users being added or removed from the same
-     * list. No dataFields are sent with the users.
+     * Each subscribe and unsubscribe request may contain multiple users if there are multiple
+     * users being added or removed from the same list. No dataFields are sent with the users.
      *
-     * https://api.iterable.com/api/docs#lists_subscribe
-     * https://api.iterable.com/api/docs#lists_unsubscribe
+     * mParticle Audience Processing: https://docs.mparticle.com/developers/partners/firehose/#audience-processing
+     * Iterable subscribe: https://api.iterable.com/api/docs#lists_subscribe
+     * Iterable unsubscribe: https://api.iterable.com/api/docs#lists_unsubscribe
      *
-     * @param request the request
+     * @param request the mParticle request
      * @return a response that indicates the request was processed successfully
      * @throws IOException
      */
