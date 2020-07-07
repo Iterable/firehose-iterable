@@ -2,8 +2,7 @@ package com.mparticle.iterable;
 
 
 
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
+import okhttp3.*;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -12,6 +11,7 @@ import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -59,8 +59,20 @@ public interface IterableService {
     @GET("api/lists")
     Call<GetListResponse> lists();
 
+    class HeadersInterceptor implements Interceptor {
+        @Override
+        public Response intercept(Interceptor.Chain chain) throws IOException {
+            Request original = chain.request();
+            Request requestWithHeaders = original.newBuilder()
+                    .header("User-Agent", "mparticle-lambda")
+                    .build();
+            return chain.proceed(requestWithHeaders);
+        }
+    }
+
     static IterableService newInstance() {
         final OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(new HeadersInterceptor())
                 .connectTimeout(SERVICE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
                 .readTimeout(SERVICE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
                 .build();
