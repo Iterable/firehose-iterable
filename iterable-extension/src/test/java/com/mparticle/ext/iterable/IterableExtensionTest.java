@@ -14,12 +14,13 @@ import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -985,8 +986,22 @@ public class IterableExtensionTest {
     }
 
     @Test(expected = IOException.class)
-    public void testHandleIterableError() throws IOException {
+    public void testHandleIterableErrorThrowsException() throws IOException {
         IterableExtension.handleIterableResponse(testErrorResponse, "e1");
+    }
+
+    @Test
+    public void testHandleIterableErrorLogsError() {
+        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"e1\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+
+        try {
+            IterableExtension.handleIterableResponse(testErrorResponse, "e1");
+        } catch (IOException ignored) {
+        }
+        assertEquals(expectedLogMessage, outContent.toString());
+        System.setOut(System.out);
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
