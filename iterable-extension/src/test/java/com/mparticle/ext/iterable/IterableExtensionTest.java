@@ -9,6 +9,8 @@ import com.mparticle.sdk.model.registration.Account;
 import com.mparticle.sdk.model.registration.ModuleRegistrationResponse;
 import com.mparticle.sdk.model.registration.Setting;
 import com.mparticle.sdk.model.registration.UserIdentityPermission;
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +43,7 @@ public class IterableExtensionTest {
     private Account testAccount;
     private IterableApiResponse testIterableApiSuccess;
     private Response testSuccessResponse;
+    private Response testErrorResponse;
     private LinkedList<UserIdentity> userIdentitiesWithEmail;
     private LinkedList<UserIdentity> userIdentitiesWithEmailAndCustomerId;
 
@@ -92,6 +95,8 @@ public class IterableExtensionTest {
         testIterableApiSuccess = new IterableApiResponse();
         testIterableApiSuccess.code = IterableApiResponse.SUCCESS_MESSAGE;
         testSuccessResponse = Response.success(testIterableApiSuccess);
+        testErrorResponse = Response.error(400, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{code:\"InvalidEmailAddressError\"}"));
     }
 
     @org.junit.Test
@@ -967,6 +972,16 @@ public class IterableExtensionTest {
             exception = ioe;
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
+    }
+
+    @Test
+    public void testHandleIterableSuccess() throws IOException{
+        IterableExtension.handleIterableResponse(testSuccessResponse);
+    }
+
+    @Test(expected = IOException.class)
+    public void testHandleIterableError() throws IOException {
+        IterableExtension.handleIterableResponse(testErrorResponse);
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
