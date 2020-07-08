@@ -14,6 +14,7 @@ import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -100,7 +101,7 @@ public class IterableExtensionTest {
     }
 
     @org.junit.Test
-    public void testProcessEventProcessingRequest() throws Exception {
+    public void testProcessEventProcessingRequest() {
         IterableExtension extension = new IterableExtension();
         EventProcessingRequest request = createEventProcessingRequest();
         List<Event> events = new LinkedList<>();
@@ -120,7 +121,11 @@ public class IterableExtensionTest {
         events.add(customEvent4);
 
         request.setEvents(events);
-        extension.processEventProcessingRequest(request);
+        try {
+            extension.processEventProcessingRequest(request);
+        } catch (IOException e) {
+            // Without an API key, this will throw because the extension isn't mocked.
+        }
         assertNotNull("IterableService should have been created", extension.iterableService);
 
         assertEquals("Events should have been in order",1, request.getEvents().get(0).getTimestamp());
@@ -976,12 +981,12 @@ public class IterableExtensionTest {
 
     @Test
     public void testHandleIterableSuccess() throws IOException{
-        IterableExtension.handleIterableResponse(testSuccessResponse);
+        IterableExtension.handleIterableResponse(testSuccessResponse, "e1");
     }
 
     @Test(expected = IOException.class)
     public void testHandleIterableError() throws IOException {
-        IterableExtension.handleIterableResponse(testErrorResponse);
+        IterableExtension.handleIterableResponse(testErrorResponse, "e1");
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
