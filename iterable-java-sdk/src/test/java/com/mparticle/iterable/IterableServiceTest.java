@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -202,7 +203,7 @@ public class IterableServiceTest {
     }
 
     @Test
-    public void testParseIterableError() {
+    public void testParseIterableError() throws IOException {
         Response testErrorResponse = Response.error(400, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), ERROR_JSON));
         IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
@@ -211,8 +212,8 @@ public class IterableServiceTest {
         assertEquals("45.29.69.159", error.params.get("ip"));
     }
 
-    @Test
-    public void testParseMalformedIterableError() {
+    @Test(expected = IOException.class)
+    public void testParseMalformedIterableError() throws IOException {
         Response testErrorResponse = Response.error(400, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "<p>that's not JSON</p>"));
         IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
