@@ -982,22 +982,25 @@ public class IterableExtensionTest {
 
     @Test
     public void testHandleIterableSuccess() throws IOException{
-        IterableExtension.handleIterableResponse(testSuccessResponse, "e1");
+        IterableExtension.handleIterableResponse(testSuccessResponse,
+                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
     }
 
     @Test(expected = IOException.class)
     public void testHandleIterableErrorThrowsException() throws IOException {
-        IterableExtension.handleIterableResponse(testErrorResponse, "e1");
+        IterableExtension.handleIterableResponse(testErrorResponse,
+                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
     }
 
     @Test
     public void testHandleIterableErrorLogsError() {
-        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"e1\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
+        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
         try {
-            IterableExtension.handleIterableResponse(testErrorResponse, "e1");
+            IterableExtension.handleIterableResponse(testErrorResponse,
+                    UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         } catch (IOException ignored) {
         }
         assertEquals(expectedLogMessage, outContent.toString());

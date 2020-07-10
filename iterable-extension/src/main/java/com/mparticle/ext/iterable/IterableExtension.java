@@ -83,7 +83,7 @@ public class IterableExtension extends MessageProcessor {
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
-                        handleIterableResponse(response, event.getId().toString());
+                        handleIterableResponse(response, event.getId());
                     }
                 }
             }
@@ -166,7 +166,7 @@ public class IterableExtension extends MessageProcessor {
         }
 
         Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
-        handleIterableResponse(response, event.getId().toString());
+        handleIterableResponse(response, event.getId());
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -230,7 +230,7 @@ public class IterableExtension extends MessageProcessor {
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
-                handleIterableResponse(response, request.getId().toString());
+                handleIterableResponse(response, request.getId());
             }
         }
     }
@@ -311,7 +311,7 @@ public class IterableExtension extends MessageProcessor {
             }
 
             Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
-            handleIterableResponse(response, event.getId().toString());
+            handleIterableResponse(response, event.getId());
         }
     }
 
@@ -565,7 +565,7 @@ public class IterableExtension extends MessageProcessor {
             return false;
         }
         Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
-        handleIterableResponse(response, event.getId().toString());
+        handleIterableResponse(response, event.getId());
         return true;
 
     }
@@ -634,7 +634,7 @@ public class IterableExtension extends MessageProcessor {
         addUserIdentitiesToRequest(request, event.getRequest());
 
         Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
-        handleIterableResponse(response, event.getId().toString());
+        handleIterableResponse(response, event.getId());
     }
 
     /**
@@ -704,7 +704,7 @@ public class IterableExtension extends MessageProcessor {
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                handleIterableResponse(response, event.getId().toString());
+                handleIterableResponse(response, event.getId());
             }
         }
     }
@@ -836,11 +836,12 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, String eventId) throws IOException {
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws IOException {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
             IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
-            IterableExtensionLogger.logApiError(response, errorBody, eventId);
+            String id = eventId != null ? eventId.toString() : "Unavailable";
+            IterableExtensionLogger.logApiError(response, errorBody, id);
             throw new IOException();
         }
     }
