@@ -305,7 +305,9 @@ public class IterableExtension extends MessageProcessor {
     public void processProductActionEvent(ProductActionEvent event) throws IOException {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
             TrackPurchaseRequest purchaseRequest = new TrackPurchaseRequest();
-            purchaseRequest.id = event.getId().toString();
+            if (event.getId() != null) {
+                purchaseRequest.id = event.getId().toString();
+            }
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
             ApiUser apiUser = new ApiUser();
             addUserIdentitiesToRequest(apiUser, event.getRequest());
@@ -643,7 +645,9 @@ public class IterableExtension extends MessageProcessor {
         }
 
         TrackRequest request = new TrackRequest(event.getName());
-        request.id = event.getId().toString();
+        if (event.getId() != null) {
+            request.id = event.getId().toString();
+        }
         request.createdAt = (int) (event.getTimestamp() / 1000.0);
         request.dataFields = attemptTypeConversion(event.getAttributes());
         addUserIdentitiesToRequest(request, event.getRequest());
