@@ -779,7 +779,8 @@ public class IterableExtension extends MessageProcessor {
                     throw new IOException("Error sending list subscribe to Iterable: HTTP " + response.code());
                 }
             } catch (Exception e) {
-
+                // TODO: Decide how to handle
+                System.out.println("Error sending list subscribe to Iterable");
             }
         }
 
@@ -798,6 +799,8 @@ public class IterableExtension extends MessageProcessor {
                     throw new IOException("Error sending list unsubscribe to Iterable: HTTP " + response.code());
                 }
             } catch (Exception e) {
+                // TODO: Decide how to handle
+                System.out.println("Error sending list unsubscribe to Iterable");
 
             }
         }
