@@ -83,11 +83,7 @@ public class IterableExtension extends MessageProcessor {
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
-                        if (response.isSuccessful() && !response.body().isSuccess()) {
-                            throw new IOException(response.body().toString());
-                        } else if (!response.isSuccessful()) {
-                            throw new IOException("Error sending push-open to Iterable: HTTP " + response.code());
-                        }
+                        handleIterableResponse(response, event.getId());
                     }
                 }
             }
@@ -170,11 +166,7 @@ public class IterableExtension extends MessageProcessor {
         }
 
         Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending push subscription to Iterable: " + response.body().toString());
-        }
+        handleIterableResponse(response, event.getId());
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -206,6 +198,7 @@ public class IterableExtension extends MessageProcessor {
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
+                // TODO: Decide how to handle
                 if (response.isSuccessful()) {
                     IterableApiResponse apiResponse = response.body();
                     if (apiResponse != null && !apiResponse.isSuccess()) {
@@ -221,6 +214,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
+                // TODO: Decide how to handle
                 if (response.isSuccessful()) {
                     IterableApiResponse apiResponse = response.body();
                     if (apiResponse != null && !apiResponse.isSuccess()) {
@@ -236,12 +230,7 @@ public class IterableExtension extends MessageProcessor {
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateUser() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response, request.getId());
             }
         }
     }
@@ -292,10 +281,22 @@ public class IterableExtension extends MessageProcessor {
         return chars == null || "".equals(chars);
     }
 
+    /**
+     * Map an mParticle `purchase` product_action to Iterable's `trackPurchase` request.
+     *
+     * mParticle product_action: https://docs.mparticle.com/developers/server/json-reference#product_action
+     * Iterable trackPurchase: https://api.iterable.com/api/docs#commerce_trackPurchase
+     *
+     * @param event the mParticle event
+     * @throws IOException
+     */
     @Override
     public void processProductActionEvent(ProductActionEvent event) throws IOException {
         if (event.getAction().equals(ProductActionEvent.Action.PURCHASE)) {
             TrackPurchaseRequest purchaseRequest = new TrackPurchaseRequest();
+            if (event.getId() != null) {
+                purchaseRequest.id = event.getId().toString();
+            }
             purchaseRequest.createdAt = (int) (event.getTimestamp() / 1000.0);
             ApiUser apiUser = new ApiUser();
             addUserIdentitiesToRequest(apiUser, event.getRequest());
@@ -310,11 +311,7 @@ public class IterableExtension extends MessageProcessor {
             }
 
             Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
-            if (response.isSuccessful() && !response.body().isSuccess()) {
-                throw new IOException(response.body().toString());
-            } else if (!response.isSuccessful()) {
-                throw new IOException("Error sending custom event to Iterable: HTTP " + response.code());
-            }
+            handleIterableResponse(response, event.getId());
         }
     }
 
@@ -568,11 +565,7 @@ public class IterableExtension extends MessageProcessor {
             return false;
         }
         Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending update subscriptions event to Iterable: HTTP " + response.code());
-        }
+        handleIterableResponse(response, event.getId());
         return true;
 
     }
@@ -617,6 +610,15 @@ public class IterableExtension extends MessageProcessor {
         return updateRequest;
     }
 
+    /**
+     * Map an mParticle `custom_event` to Iterable's `track` request.
+     *
+     * mParticle custom_event: https://docs.mparticle.com/developers/server/json-reference/#custom_event
+     * Iterable track: https://api.iterable.com/api/docs#events_track
+     *
+     * @param event the mParticle event
+     * @throws IOException
+     */
     @Override
     public void processCustomEvent(CustomEvent event) throws IOException {
         if (processSubscribeEvent(event)) {
@@ -624,16 +626,15 @@ public class IterableExtension extends MessageProcessor {
         }
 
         TrackRequest request = new TrackRequest(event.getName());
+        if (event.getId() != null) {
+            request.id = event.getId().toString();
+        }
         request.createdAt = (int) (event.getTimestamp() / 1000.0);
         request.dataFields = attemptTypeConversion(event.getAttributes());
         addUserIdentitiesToRequest(request, event.getRequest());
 
         Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
-        if (response.isSuccessful() && !response.body().isSuccess()) {
-            throw new IOException(response.body().toString());
-        } else if (!response.isSuccessful()) {
-            throw new IOException("Error sending custom event to Iterable: HTTP " + response.code());
-        }
+        handleIterableResponse(response, event.getId());
     }
 
     /**
@@ -703,26 +704,22 @@ public class IterableExtension extends MessageProcessor {
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                if (response.isSuccessful() && !response.body().isSuccess()) {
-                    throw new IOException(response.body().toString());
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending push-open to Iterable: HTTP " + response.code());
-                }
+                handleIterableResponse(response, event.getId());
             }
         }
     }
 
     /**
-     * Map an AudienceMembershipChangeRequest to Iterable's list subscribe and unsubscribe requests.
+     * Map an mParticle `AudienceMembershipChangeRequest` to Iterable list `subscribe` and `unsubscribe` requests.
      *
-     * Requests are made to the /api/lists/subscribe and /api/lists/unsubscribe endpoint. Each request
-     * will contain multiple users if there are multiple users being added or removed from the same
-     * list. No dataFields are sent with the users.
+     * Each subscribe and unsubscribe request may contain multiple users if there are multiple
+     * users being added or removed from the same list. No dataFields are sent with the users.
      *
-     * https://api.iterable.com/api/docs#lists_subscribe
-     * https://api.iterable.com/api/docs#lists_unsubscribe
+     * mParticle Audience Processing: https://docs.mparticle.com/developers/partners/firehose/#audience-processing
+     * Iterable subscribe: https://api.iterable.com/api/docs#lists_subscribe
+     * Iterable unsubscribe: https://api.iterable.com/api/docs#lists_unsubscribe
      *
-     * @param request the request
+     * @param request the mParticle request
      * @return a response that indicates the request was processed successfully
      * @throws IOException
      */
@@ -782,7 +779,8 @@ public class IterableExtension extends MessageProcessor {
                     throw new IOException("Error sending list subscribe to Iterable: HTTP " + response.code());
                 }
             } catch (Exception e) {
-
+                // TODO: Decide how to handle
+                System.out.println("Error sending list subscribe to Iterable");
             }
         }
 
@@ -801,6 +799,8 @@ public class IterableExtension extends MessageProcessor {
                     throw new IOException("Error sending list unsubscribe to Iterable: HTTP " + response.code());
                 }
             } catch (Exception e) {
+                // TODO: Decide how to handle
+                System.out.println("Error sending list unsubscribe to Iterable");
 
             }
         }
@@ -839,4 +839,13 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws IOException {
+        Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
+        if (!response.isSuccessful() || !isResponseBodySuccess) {
+            IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
+            String id = eventId != null ? eventId.toString() : "Unavailable";
+            IterableExtensionLogger.logApiError(response, errorBody, id);
+            throw new IOException();
+        }
+    }
 }

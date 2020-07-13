@@ -1,15 +1,18 @@
 package com.mparticle.iterable;
 
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * This is an *integration* test, testing:
@@ -23,6 +26,7 @@ public class IterableServiceTest {
     private static final String TEST_EMAIL = "testing@mparticle.com";
     private static final String TEST_USER_ID = "123456";
     private static final String ITERABLE_API_KEY = ""; //put your API key here
+    private static final String ERROR_JSON = "{\"code\":\"BadApiKey\",\"msg\":\"No API key found on request\",\"params\":{\"endpoint\":\"\\/api\\/events\\/track\",\"ip\": \"45.29.69.159\"}}";
 
     private IterableService iterableService;
 
@@ -196,5 +200,23 @@ public class IterableServiceTest {
         assertTrue("Retrofit request not successful:\nMessage: " + response.message() + "\nCode: " + response.code(), response.isSuccessful());
         assertTrue("Iterable response was not successful:\n" + response.body().toString(), response.body().isSuccess());
 
+    }
+
+    @Test
+    public void testParseIterableError() throws IOException {
+        Response testErrorResponse = Response.error(400, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), ERROR_JSON));
+        IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
+        assertEquals("BadApiKey", error.code);
+        assertEquals("No API key found on request", error.msg);
+        assertEquals("45.29.69.159", error.params.get("ip"));
+    }
+
+    @Test(expected = IOException.class)
+    public void testParseMalformedIterableError() throws IOException {
+        Response testErrorResponse = Response.error(400, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "<p>that's not JSON</p>"));
+        IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
+        assertNotNull(error);
     }
 }

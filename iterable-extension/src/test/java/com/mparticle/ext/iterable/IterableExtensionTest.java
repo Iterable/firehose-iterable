@@ -9,6 +9,8 @@ import com.mparticle.sdk.model.registration.Account;
 import com.mparticle.sdk.model.registration.ModuleRegistrationResponse;
 import com.mparticle.sdk.model.registration.Setting;
 import com.mparticle.sdk.model.registration.UserIdentityPermission;
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -16,7 +18,9 @@ import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -41,6 +45,7 @@ public class IterableExtensionTest {
     private Account testAccount;
     private IterableApiResponse testIterableApiSuccess;
     private Response testSuccessResponse;
+    private Response testErrorResponse;
     private LinkedList<UserIdentity> userIdentitiesWithEmail;
     private LinkedList<UserIdentity> userIdentitiesWithEmailAndCustomerId;
 
@@ -92,10 +97,12 @@ public class IterableExtensionTest {
         testIterableApiSuccess = new IterableApiResponse();
         testIterableApiSuccess.code = IterableApiResponse.SUCCESS_MESSAGE;
         testSuccessResponse = Response.success(testIterableApiSuccess);
+        testErrorResponse = Response.error(400, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{code:\"InvalidEmailAddressError\"}"));
     }
 
     @org.junit.Test
-    public void testProcessEventProcessingRequest() throws Exception {
+    public void testProcessEventProcessingRequest() {
         IterableExtension extension = new IterableExtension();
         EventProcessingRequest request = createEventProcessingRequest();
         List<Event> events = new LinkedList<>();
@@ -115,7 +122,11 @@ public class IterableExtensionTest {
         events.add(customEvent4);
 
         request.setEvents(events);
-        extension.processEventProcessingRequest(request);
+        try {
+            extension.processEventProcessingRequest(request);
+        } catch (IOException e) {
+            // Without an API key, this will throw because the extension isn't mocked.
+        }
         assertNotNull("IterableService should have been created", extension.iterableService);
 
         assertEquals("Events should have been in order",1, request.getEvents().get(0).getTimestamp());
@@ -340,6 +351,7 @@ public class IterableExtensionTest {
         assertEquals("123456", argument.getValue().userId);
         assertEquals("some attribute value", argument.getValue().dataFields.get("some attribute key"));
         assertEquals((int) (timeStamp / 1000.0), argument.getValue().createdAt + 0);
+        assertEquals(event.getId().toString(), argument.getValue().id);
 
         apiResponse.code = "anything but success";
 
@@ -800,6 +812,7 @@ public class IterableExtensionTest {
         assertEquals(trackPurchaseRequest.user.userId, "123456");
         assertEquals(trackPurchaseRequest.items.size(), 2);
         assertEquals(trackPurchaseRequest.total, new BigDecimal(101d));
+        assertEquals(trackPurchaseRequest.id, event.getId().toString());
     }
 
     @Test
@@ -965,6 +978,33 @@ public class IterableExtensionTest {
             exception = ioe;
         }
         assertNotNull("Iterable extension should have thrown an IOException", exception);
+    }
+
+    @Test
+    public void testHandleIterableSuccess() throws IOException{
+        IterableExtension.handleIterableResponse(testSuccessResponse,
+                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
+    }
+
+    @Test(expected = IOException.class)
+    public void testHandleIterableErrorThrowsException() throws IOException {
+        IterableExtension.handleIterableResponse(testErrorResponse,
+                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
+    }
+
+    @Test
+    public void testHandleIterableErrorLogsError() {
+        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+
+        try {
+            IterableExtension.handleIterableResponse(testErrorResponse,
+                    UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
+        } catch (IOException ignored) {
+        }
+        assertEquals(expectedLogMessage, outContent.toString());
+        System.setOut(System.out);
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
