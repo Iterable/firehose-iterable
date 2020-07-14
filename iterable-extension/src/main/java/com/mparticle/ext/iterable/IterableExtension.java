@@ -509,6 +509,7 @@ public class IterableExtension extends MessageProcessor {
                 Event.Type.PRODUCT_ACTION);
 
         eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
+        eventProcessingRegistration.setMaxDataAgeHours(24*30);
         response.setEventProcessingRegistration(eventProcessingRegistration);
         AudienceProcessingRegistration audienceRegistration = new AudienceProcessingRegistration();
         audienceRegistration.setAccountSettings(audienceSettings);
