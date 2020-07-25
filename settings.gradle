@@ -1,2 +1,3 @@
 include ':iterable-extension'
+include ':iterable-extension-queuer'
 include ':iterable-java-sdk'
