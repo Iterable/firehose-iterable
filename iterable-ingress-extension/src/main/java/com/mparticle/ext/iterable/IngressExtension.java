@@ -11,7 +11,7 @@ import com.mparticle.sdk.model.registration.*;
 import java.io.IOException;
 import java.util.*;
 
-public class IterableExtensionIngress extends MessageProcessor {
+public class IngressExtension extends MessageProcessor {
 
   public static final String NAME = "Iterable";
   public static final String SETTING_API_KEY = "apiKey";

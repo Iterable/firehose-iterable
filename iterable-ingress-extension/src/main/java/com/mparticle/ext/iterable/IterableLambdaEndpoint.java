@@ -4,22 +4,16 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.mparticle.sdk.model.Message;
 import com.mparticle.sdk.model.MessageSerializer;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
-import java.util.Scanner;
 
 public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   public static final MessageSerializer serializer = new MessageSerializer();
-  public static final IterableExtensionIngress processor = new IterableExtensionIngress();
+  public static final IngressExtension processor = new IngressExtension();
   public SqsClient sqsClient;
   public String queueUrl;
   public IngressQueueManager queueManager;
