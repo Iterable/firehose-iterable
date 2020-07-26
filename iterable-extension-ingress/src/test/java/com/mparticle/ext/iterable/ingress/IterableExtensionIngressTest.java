@@ -23,18 +23,18 @@ public class IterableExtensionIngressTest {
 
   private static final String TEST_API_KEY = "foo api key";
   private static MessageSerializer serializer;
-  private static IterableExtensionIngress ingress;
+  private static IterableExtensionIngress ingressExtension;
 
   @Before
   public void setup() {
     serializer = new MessageSerializer();
-    ingress = new IterableExtensionIngress();
+    ingressExtension = new IterableExtensionIngress();
   }
 
   @Test
   public void testProcessRegistrationRequest() throws Exception {
     ModuleRegistrationResponse response =
-        ingress.processRegistrationRequest(new ModuleRegistrationRequest());
+        ingressExtension.processRegistrationRequest(new ModuleRegistrationRequest());
     List<UserIdentityPermission> userIdentities = response.getPermissions().getUserIdentities();
     assertEquals(2, userIdentities.size());
     boolean email, customer;
@@ -82,7 +82,7 @@ public class IterableExtensionIngressTest {
     events.add(new UserAttributeChangeEvent());
     request.setEvents(events);
 
-    EventProcessingResponse response = ingress.processEventProcessingRequest(request);
+    EventProcessingResponse response = ingressExtension.processEventProcessingRequest(request);
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();
@@ -91,7 +91,7 @@ public class IterableExtensionIngressTest {
   @Test
   public void testProcessAudienceMembershipChangeRequest() throws Exception {
     AudienceMembershipChangeResponse response =
-        ingress.processAudienceMembershipChangeRequest(new AudienceMembershipChangeRequest());
+        ingressExtension.processAudienceMembershipChangeRequest(new AudienceMembershipChangeRequest());
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();
@@ -100,7 +100,7 @@ public class IterableExtensionIngressTest {
   @Test
   public void testProcessAudienceSubscriptionRequest() throws Exception {
     AudienceSubscriptionResponse response =
-        ingress.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
+        ingressExtension.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();

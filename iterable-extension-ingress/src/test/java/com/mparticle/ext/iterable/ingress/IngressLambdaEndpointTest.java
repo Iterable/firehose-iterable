@@ -3,6 +3,7 @@ package com.mparticle.ext.iterable.ingress;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -25,6 +26,7 @@ public class IngressLambdaEndpointTest {
   }
 
   @Test
+  @Ignore
   public void testProcessEventProcessingRequest() throws IOException {
     InputStream input = readTestFixture("EventProcessingRequest_ios.json");
     ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -38,6 +40,7 @@ public class IngressLambdaEndpointTest {
   }
 
   @Test
+  @Ignore
   public void testProcessModuleRegistrationRequest() throws IOException {
     InputStream input = readTestFixture("ModuleRegistrationRequest.json");
     Map<String, Object> expectedResponse = getFixtureAsMap("ModuleRegistrationResponse.json");
@@ -51,6 +54,7 @@ public class IngressLambdaEndpointTest {
   }
 
   @Test
+  @Ignore
   public void testProcessAudienceMembershipChangeRequest() throws IOException {
     InputStream input = readTestFixture("AudienceMembershipChangeRequest.json");
     Map<String, Object> expectedResponse = getFixtureAsMap("AudienceMembershipChangeResponse.json");

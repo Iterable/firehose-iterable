@@ -26,7 +26,7 @@ public class IngressLambdaEndpoint implements RequestStreamHandler {
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws IOException {
     // Add the request to SQS
-//    enqueueMessage(input);
+    enqueueMessage(input);
 
     // Return an mParticle response object to the invoker
     Message request = serializer.deserialize(input, Message.class);
