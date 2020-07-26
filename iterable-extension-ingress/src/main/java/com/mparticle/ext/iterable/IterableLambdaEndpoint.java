@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.mparticle.sdk.model.Message;
 import com.mparticle.sdk.model.MessageSerializer;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
@@ -36,6 +37,8 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   public void enqueueMessage(InputStream input) {
     if (queueUrl == null) {
+      System.out.println(System.getenv("QUEUE_URL"));
+      System.out.println(System.getProperty("QUEUE_URL"));
       queueUrl = Objects.requireNonNull(System.getenv("QUEUE_URL"));
     }
     if (sqsClient == null) {
