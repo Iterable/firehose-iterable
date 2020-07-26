@@ -3,10 +3,8 @@ package com.mparticle.ext.iterable;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import software.amazon.awssdk.services.sqs.SqsClient;
 
 import java.io.*;
 import java.util.Map;
@@ -21,12 +19,10 @@ public class IterableLambdaEndpointTest {
   @Before
   public void setup() {
     lambda = new IterableLambdaEndpoint();
-    lambda.queueUrl = "";
-    lambda.sqsClient = Mockito.mock(SqsClient.class);
+    lambda.queueManager = Mockito.mock(IngressQueueManager.class);
   }
 
   @Test
-  @Ignore
   public void testProcessEventProcessingRequest() throws IOException {
     InputStream input = readTestFixture("EventProcessingRequest_ios.json");
     ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -40,7 +36,6 @@ public class IterableLambdaEndpointTest {
   }
 
   @Test
-  @Ignore
   public void testProcessModuleRegistrationRequest() throws IOException {
     InputStream input = readTestFixture("ModuleRegistrationRequest.json");
     Map<String, Object> expectedResponse = getFixtureAsMap("ModuleRegistrationResponse.json");
@@ -54,7 +49,6 @@ public class IterableLambdaEndpointTest {
   }
 
   @Test
-  @Ignore
   public void testProcessAudienceMembershipChangeRequest() throws IOException {
     InputStream input = readTestFixture("AudienceMembershipChangeRequest.json");
     Map<String, Object> expectedResponse = getFixtureAsMap("AudienceMembershipChangeResponse.json");
