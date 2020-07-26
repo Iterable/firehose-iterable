@@ -97,15 +97,6 @@ public class IterableExtensionIngressTest {
     System.out.println();
   }
 
-  @Test
-  public void testProcessAudienceSubscriptionRequest() throws Exception {
-    AudienceSubscriptionResponse response =
-        ingressExtension.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
-    System.out.println();
-    System.out.println(serializer.serialize(response));
-    System.out.println();
-  }
-
   private EventProcessingRequest createEventProcessingRequest() {
     EventProcessingRequest request = new EventProcessingRequest();
     Account account = new Account();
