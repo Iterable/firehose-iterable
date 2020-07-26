@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.queuer;
+package com.mparticle.ext.iterable.ingress;
 
 import com.mparticle.sdk.model.MessageSerializer;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRequest;
@@ -14,27 +14,27 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.mparticle.ext.iterable.queuer.IterableExtensionQueuer.SETTING_API_KEY;
-import static com.mparticle.ext.iterable.queuer.IterableExtensionQueuer.SETTING_USER_ID_FIELD;
+import static com.mparticle.ext.iterable.ingress.IterableExtensionIngress.SETTING_API_KEY;
+import static com.mparticle.ext.iterable.ingress.IterableExtensionIngress.SETTING_USER_ID_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class IterableExtensionQueuerTest {
+public class IterableExtensionIngressTest {
 
   private static final String TEST_API_KEY = "foo api key";
   private static MessageSerializer serializer;
-  private static IterableExtensionQueuer queuer;
+  private static IterableExtensionIngress ingress;
 
   @Before
   public void setup() {
     serializer = new MessageSerializer();
-    queuer = new IterableExtensionQueuer();
+    ingress = new IterableExtensionIngress();
   }
 
   @Test
   public void testProcessRegistrationRequest() throws Exception {
     ModuleRegistrationResponse response =
-        queuer.processRegistrationRequest(new ModuleRegistrationRequest());
+        ingress.processRegistrationRequest(new ModuleRegistrationRequest());
     List<UserIdentityPermission> userIdentities = response.getPermissions().getUserIdentities();
     assertEquals(2, userIdentities.size());
     boolean email, customer;
@@ -82,8 +82,7 @@ public class IterableExtensionQueuerTest {
     events.add(new UserAttributeChangeEvent());
     request.setEvents(events);
 
-    EventProcessingResponse response =
-        queuer.processEventProcessingRequest(request);
+    EventProcessingResponse response = ingress.processEventProcessingRequest(request);
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();
@@ -92,7 +91,7 @@ public class IterableExtensionQueuerTest {
   @Test
   public void testProcessAudienceMembershipChangeRequest() throws Exception {
     AudienceMembershipChangeResponse response =
-        queuer.processAudienceMembershipChangeRequest(new AudienceMembershipChangeRequest());
+        ingress.processAudienceMembershipChangeRequest(new AudienceMembershipChangeRequest());
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();
@@ -101,7 +100,7 @@ public class IterableExtensionQueuerTest {
   @Test
   public void testProcessAudienceSubscriptionRequest() throws Exception {
     AudienceSubscriptionResponse response =
-        queuer.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
+        ingress.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();

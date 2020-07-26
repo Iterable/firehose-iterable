@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.queuer;
+package com.mparticle.ext.iterable.ingress;
 
 import com.mparticle.sdk.MessageProcessor;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRequest;
@@ -11,7 +11,7 @@ import com.mparticle.sdk.model.registration.*;
 import java.io.IOException;
 import java.util.*;
 
-public class IterableExtensionQueuer extends MessageProcessor {
+public class IterableExtensionIngress extends MessageProcessor {
 
   public static final String NAME = "Iterable";
   public static final String SETTING_API_KEY = "apiKey";
@@ -22,7 +22,6 @@ public class IterableExtensionQueuer extends MessageProcessor {
   public static final String SETTING_COERCE_STRINGS_TO_SCALARS = "coerceStringsToScalars";
   public static final String SETTING_USER_ID_FIELD = "userIdField";
   public static final String USER_ID_FIELD_CUSTOMER_ID = "customerId";
-  public static final String USER_ID_FIELD_MPID = "mpid";
 
   @Override
   public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
@@ -128,10 +127,7 @@ public class IterableExtensionQueuer extends MessageProcessor {
 
   /**
    * When a MessageProcessor is given a batch of data/events, it will first call this method. This
-   * is a good time to do some setup. For example since a given batch will all be for the same
-   * device, you could contact the server once here and make sure that that device/user exists in
-   * the system, rather than doing that every time one of the more specific methods (ie
-   * processCustomEvent) is called.
+   * is a good time to do some setup.
    */
   @Override
   public EventProcessingResponse processEventProcessingRequest(EventProcessingRequest request)

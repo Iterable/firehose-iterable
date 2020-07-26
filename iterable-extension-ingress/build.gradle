@@ -9,8 +9,12 @@ dependencies {
     compile (
             'com.amazonaws:aws-lambda-java-core:1.2.0',
             'com.amazonaws:aws-lambda-java-events:2.0.2',
-            'com.mparticle:java-sdk:2.2.0'
+            'software.amazon.awssdk:sqs:2.13.60',
+            'com.mparticle:java-sdk:2.2.0',
+
     )
+//    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.826')
+//    implementation 'com.amazonaws:aws-java-sdk-sqs'
     testCompile('junit:junit:4.12')
     testCompile('org.mockito:mockito-core:1.10.19')
 }
