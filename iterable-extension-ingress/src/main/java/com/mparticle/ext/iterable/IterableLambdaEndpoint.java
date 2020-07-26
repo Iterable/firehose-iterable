@@ -22,45 +22,20 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
   public static final IterableExtensionIngress processor = new IterableExtensionIngress();
   public SqsClient sqsClient;
   public String queueUrl;
+  public IngressQueueManager queueManager;
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws IOException {
     // Add the request to SQS
-    enqueueMessage(input);
+    if (queueManager == null) {
+      queueManager = IngressQueueManager.create();
+    }
+    queueManager.enqueueMessage(input);
 
     // Return an mParticle response object to the invoker
     Message request = serializer.deserialize(input, Message.class);
     Message response = processor.processMessage(request);
     serializer.serialize(output, response);
-  }
-
-  public void enqueueMessage(InputStream input) {
-    if (queueUrl == null) {
-      System.out.println(System.getenv("QUEUE_URL"));
-      System.out.println(System.getProperty("QUEUE_URL"));
-      queueUrl = Objects.requireNonNull(System.getenv("QUEUE_URL"));
-    }
-    if (sqsClient == null) {
-      sqsClient = SqsClient.builder()
-              .region(Region.US_EAST_1)
-              .build();
-    }
-    String mparticleRequest = convertInputToString(input);
-    // TODO: remove log statement before sending live traffic
-    System.out.println("Adding message to SQS: " + mparticleRequest);
-    SendMessageRequest req = SendMessageRequest.builder()
-            .queueUrl(queueUrl)
-            .messageBody(mparticleRequest)
-            .build();
-    sqsClient.sendMessage(req);
-  }
-
-  public static String convertInputToString(InputStream input) {
-    String outputString = null;
-    try (Scanner scanner = new Scanner(input, StandardCharsets.UTF_8.name())) {
-      outputString = scanner.useDelimiter("\\A").next();
-    }
-    return outputString;
   }
 }
