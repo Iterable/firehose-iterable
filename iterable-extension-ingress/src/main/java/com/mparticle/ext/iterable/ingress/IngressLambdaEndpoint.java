@@ -39,13 +39,17 @@ public class IngressLambdaEndpoint implements RequestStreamHandler {
       queueUrl = Objects.requireNonNull(System.getenv("QUEUE_URL"));
     }
     if (sqsClient == null) {
-      sqsClient = SqsClient.builder().region(Region.US_EAST_1).build();
+      sqsClient = SqsClient.builder()
+              .region(Region.US_EAST_1)
+              .build();
     }
     String mparticleRequest = convertInputToString(input);
     // TODO: remove log statement before sending live traffic
     System.out.println("Adding message to SQS: " + mparticleRequest);
-    SendMessageRequest req =
-        SendMessageRequest.builder().queueUrl(queueUrl).messageBody(mparticleRequest).build();
+    SendMessageRequest req = SendMessageRequest.builder()
+            .queueUrl(queueUrl)
+            .messageBody(mparticleRequest)
+            .build();
     sqsClient.sendMessage(req);
   }
 
