@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.ingress;
+package com.mparticle.ext.iterable;
 
 import com.mparticle.sdk.model.MessageSerializer;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRequest;
@@ -14,8 +14,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.mparticle.ext.iterable.ingress.IterableExtensionIngress.SETTING_API_KEY;
-import static com.mparticle.ext.iterable.ingress.IterableExtensionIngress.SETTING_USER_ID_FIELD;
+import static com.mparticle.ext.iterable.IterableExtensionIngress.SETTING_API_KEY;
+import static com.mparticle.ext.iterable.IterableExtensionIngress.SETTING_USER_ID_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
