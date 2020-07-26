@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.ingress;
+package com.mparticle.ext.iterable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,14 +13,14 @@ import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
 
-public class IngressLambdaEndpointTest {
+public class IterableLambdaEndpointTest {
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final String PATH_TO_FIXTURES = "src/test/resources/";
-  private IngressLambdaEndpoint lambda;
+  private IterableLambdaEndpoint lambda;
 
   @Before
   public void setup() {
-    lambda = new IngressLambdaEndpoint();
+    lambda = new IterableLambdaEndpoint();
     lambda.queueUrl = "";
     lambda.sqsClient = Mockito.mock(SqsClient.class);
   }

@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.ingress;
+package com.mparticle.ext.iterable;
 
 import com.mparticle.sdk.MessageProcessor;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRequest;

@@ -1,4 +1,4 @@
-package com.mparticle.ext.iterable.ingress;
+package com.mparticle.ext.iterable;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Scanner;
 
-public class IngressLambdaEndpoint implements RequestStreamHandler {
+public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   public static final MessageSerializer serializer = new MessageSerializer();
   public static final IterableExtensionIngress processor = new IterableExtensionIngress();
