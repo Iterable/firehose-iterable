@@ -1,0 +1,85 @@
+{
+  "type" : "module_registration_response",
+  "id" : "3c6612cc-5c62-4bc4-952f-db84c2e1551b",
+  "timestamp_ms" : 1586980879797,
+  "firehose_version" : "2.4.0",
+  "sdk_version" : "2.4.0",
+  "name" : "Your Company Name",
+  "description" : "A description of your <a href=''>company</a> and services. Inline HTML markup is permitted.",
+  "version" : "1.0",
+  "permissions" : {
+    "device_identities" : [ {
+      "type" : "ios_advertising_id",
+      "encoding" : "raw",
+      "required" : true
+    }, {
+      "type" : "google_advertising_id",
+      "encoding" : "raw",
+      "required" : true
+    } ],
+    "user_identities" : [ {
+      "type" : "email",
+      "encoding" : "sha256",
+      "required" : false
+    } ],
+    "partner_identities" : [ {
+      "type" : "partner_id",
+      "encoding" : "raw",
+      "required" : false
+    } ],
+    "allow_consent_state" : true,
+    "allow_access_mpid" : true
+  },
+  "event_processing_registration" : {
+    "account_settings" : [ {
+      "type" : "text",
+      "id" : "apiKey",
+      "name" : "API Key",
+      "description" : "Secret key to use the API, provided by your account manager",
+      "visible" : true,
+      "required" : true,
+      "confidential" : true
+    }, {
+      "type" : "text",
+      "id" : "customerId",
+      "name" : "Customer ID",
+      "description" : "Internal customer ID, provided by your account manager",
+      "visible" : true,
+      "required" : true,
+      "confidential" : false
+    } ],
+    "supported_event_types" : [ "custom_event", "session_start", "session_end" ],
+    "supported_runtime_environments" : [ "ios", "android" ],
+    "supported_system_notification_types" : [ "gdpr_consent_state" ],
+    "max_data_age_hours" : 24
+  },
+  "audience_processing_registration" : {
+    "account_settings" : [ {
+      "type" : "text",
+      "id" : "apiKey",
+      "name" : "API Key",
+      "description" : "Secret key to use the API, provided by your account manager",
+      "visible" : true,
+      "required" : true,
+      "confidential" : true
+    }, {
+      "type" : "text",
+      "id" : "customerId",
+      "name" : "Customer ID",
+      "description" : "Internal customer ID, provided by your account manager",
+      "visible" : true,
+      "required" : true,
+      "confidential" : false
+    } ],
+    "audience_subscription_settings" : [ {
+      "type" : "integer",
+      "id" : "val_count",
+      "name" : "val_count",
+      "visible" : true,
+      "default_value" : 120,
+      "min_value" : 10,
+      "max_value" : 2000,
+      "required" : false
+    } ]
+  }
+}
