@@ -34,6 +34,12 @@ public class IterableExtension extends MessageProcessor {
     IterableService iterableService;
 
     @Override
+    public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
+        // Processing ModuleRegistrationRequests is handled by the Ingress Lambda.
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public EventProcessingResponse processEventProcessingRequest(EventProcessingRequest request) throws IOException {
         if (iterableService == null) {
             iterableService = IterableService.newInstance();
@@ -619,7 +625,6 @@ public class IterableExtension extends MessageProcessor {
      *
      * @param request the mParticle request
      * @return a response that indicates the request was processed successfully
-     * @throws IOException
      */
     @Override
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
