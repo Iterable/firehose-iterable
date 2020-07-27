@@ -176,17 +176,6 @@ public class IterableExtensionTest {
         assertEquals("mptest@mparticle.com", argument.getValue().email);
         assertEquals("123456", argument.getValue().userId);
         assertEquals(argument.getValue().dataFields.get("some attribute key"), "some attribute value");
-
-        apiResponse.code = "anything but success";
-
-        IOException exception = null;
-        try {
-            extension.updateUser(request);
-        } catch (IOException ioe) {
-            exception = ioe;
-        }
-        assertNotNull("Iterable extension should have thrown an IOException", exception);
-
     }
 
     @Test
@@ -282,40 +271,6 @@ public class IterableExtensionTest {
         Mockito.verify(extension.iterableService, never()).userUpdate(Mockito.any(), Mockito.any());
     }
 
-    /**
-     * Simple test to make sure Iterable is registering for the proper data points.
-     *
-     * @throws Exception
-     */
-    @org.junit.Test
-    public void testProcessRegistrationRequest() throws Exception {
-        ModuleRegistrationResponse response = new IterableExtension().processRegistrationRequest(null);
-        List<UserIdentityPermission> userIdentities = response.getPermissions().getUserIdentities();
-        assertEquals(2, userIdentities.size());
-        boolean email, customer;
-        email = userIdentities.get(0).getType().equals(UserIdentity.Type.EMAIL) ||
-                userIdentities.get(1).getType().equals(UserIdentity.Type.EMAIL);
-
-        customer = userIdentities.get(0).getType().equals(UserIdentity.Type.CUSTOMER) ||
-                userIdentities.get(1).getType().equals(UserIdentity.Type.CUSTOMER);
-
-
-        assertTrue("Iterable Extension should register for email permission", email);
-        assertTrue("Iterable Extension should register for customer id permission", customer);
-
-        List<Setting> accountSettings = response.getEventProcessingRegistration().getAccountSettings();
-        assertTrue("There should be a single text setting (api key) for iterable", accountSettings.get(0).getType().equals(Setting.Type.TEXT));
-
-        List<Event.Type> eventTypes = response.getEventProcessingRegistration().getSupportedEventTypes();
-        assertTrue("Iterable should support custom events", eventTypes.contains(Event.Type.CUSTOM_EVENT));
-        assertTrue("Iterable should support push subscriptions", eventTypes.contains(Event.Type.PUSH_SUBSCRIPTION));
-        assertTrue("Iterable should support push receipts", eventTypes.contains(Event.Type.PUSH_MESSAGE_RECEIPT));
-        assertTrue("Iterable should support user identity changes", eventTypes.contains(Event.Type.USER_IDENTITY_CHANGE));
-
-        Setting setting = response.getAudienceProcessingRegistration().getAudienceConnectionSettings().get(0);
-        assertTrue("Iterable audiences should have a single Integer setting", setting.getType().equals(Setting.Type.INTEGER));
-    }
-
     @org.junit.Test
     public void testProcessCustomEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
@@ -352,16 +307,6 @@ public class IterableExtensionTest {
         assertEquals("some attribute value", argument.getValue().dataFields.get("some attribute key"));
         assertEquals((int) (timeStamp / 1000.0), argument.getValue().createdAt + 0);
         assertEquals(event.getId().toString(), argument.getValue().id);
-
-        apiResponse.code = "anything but success";
-
-        IOException exception = null;
-        try {
-            extension.processCustomEvent(event);
-        } catch (IOException ioe) {
-            exception = ioe;
-        }
-        assertNotNull("Iterable extension should have thrown an IOException", exception);
     }
 
     @org.junit.Test
@@ -408,18 +353,6 @@ public class IterableExtensionTest {
         assertEquals(12345, argument.getValue().campaignId + 0);
         assertEquals(54321, argument.getValue().templateId + 0);
         assertEquals("1dce4e505b11111ca1111d6fdd774fbd", argument.getValue().messageId);
-
-
-        apiResponse.code = "anything but success";
-
-        IOException exception2 = null;
-        try {
-            extension.processPushMessageReceiptEvent(event);
-        } catch (IOException ioe) {
-            exception2 = ioe;
-        }
-        assertNotNull("Iterable extension should have thrown an IOException", exception2);
-
     }
 
     @org.junit.Test
@@ -467,18 +400,6 @@ public class IterableExtensionTest {
         assertEquals(12345, argument.getValue().campaignId + 0);
         assertEquals(54321, argument.getValue().templateId + 0);
         assertEquals("1dce4e505b11111ca1111d6fdd774fbd", argument.getValue().messageId);
-
-
-        apiResponse.code = "anything but success";
-
-        IOException exception2 = null;
-        try {
-            extension.processPushMessageReceiptEvent(event);
-        } catch (IOException ioe) {
-            exception2 = ioe;
-        }
-        assertNotNull("Iterable extension should have thrown an IOException", exception2);
-
     }
 
     /**
@@ -524,11 +445,12 @@ public class IterableExtensionTest {
         IterableService service = Mockito.mock(IterableService.class);
         extension.iterableService = service;
         Call callMock = Mockito.mock(Call.class);
-        Mockito.when(service.trackPushOpen(Mockito.any(), Mockito.any()))
+        Mockito.when(service.listSubscribe(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
-        IterableApiResponse apiResponse = new IterableApiResponse();
-        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
-        Response<IterableApiResponse> response = Response.success(apiResponse);
+        Mockito.when(service.listUnsubscribe(Mockito.any(), Mockito.any()))
+                .thenReturn(callMock);
+        ListResponse apiResponse = new ListResponse();
+        Response<ListResponse> response = Response.success(apiResponse);
         Mockito.when(callMock.execute()).thenReturn(response);
 
         Audience audience = new Audience();
@@ -655,11 +577,14 @@ public class IterableExtensionTest {
     @Test
     public void testProcessAudienceMembershipChangeWithMPID() throws IOException {
         testIterableExtension.iterableService = iterableServiceMock;
+        Call callMock = Mockito.mock(Call.class);
         Mockito.when(iterableServiceMock.listSubscribe(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
         Mockito.when(iterableServiceMock.listUnsubscribe(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
-        Mockito.when(callMock.execute()).thenReturn(testSuccessResponse);
+        ListResponse apiResponse = new ListResponse();
+        Response<ListResponse> response = Response.success(apiResponse);
+        Mockito.when(callMock.execute()).thenReturn(response);
 
         List userProfileList = new LinkedList<UserProfile>();
         testUserProfile.setMpId("m1");
@@ -968,16 +893,6 @@ public class IterableExtensionTest {
         assertEquals(expectedMessageTypeIdList, argument.getValue().unsubscribedMessageTypeIds);
         assertEquals(expectedCampaignId, (int)argument.getValue().campaignId);
         assertEquals(expectedTemplateId, (int)argument.getValue().templateId);
-
-        apiResponse.code = "anything but success";
-
-        IOException exception = null;
-        try {
-            extension.processCustomEvent(event);
-        } catch (IOException ioe) {
-            exception = ioe;
-        }
-        assertNotNull("Iterable extension should have thrown an IOException", exception);
     }
 
     @Test

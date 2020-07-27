@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 public class IterableExtension extends MessageProcessor {
 
-    public static final String NAME = "Iterable";
     public static final String SETTING_API_KEY = "apiKey";
     public static final String SETTING_GCM_NAME_KEY = "gcmIntegrationName";
     public static final String SETTING_APNS_KEY = "apnsProdIntegrationName";
@@ -36,7 +35,7 @@ public class IterableExtension extends MessageProcessor {
     @Override
     public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
         // Processing ModuleRegistrationRequests is handled by the Ingress Lambda.
-        throw new UnsupportedOperationException();
+        return new ModuleRegistrationResponse("Iterable", "1.6.0");
     }
 
     @Override
