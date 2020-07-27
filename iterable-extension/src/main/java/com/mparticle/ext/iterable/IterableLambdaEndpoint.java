@@ -23,7 +23,7 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
         String messageBody = IOUtils.toString(input, "UTF-8");
         System.out.println("Received message from queue: " + messageBody);
 
-        Message request = serializer.deserialize(input, Message.class);
+        Message request = serializer.deserialize(messageBody, Message.class);
         Message response = processor.processMessage(request);
         serializer.serialize(output, response);
     }
