@@ -204,13 +204,7 @@ public class IterableExtension extends MessageProcessor {
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                // TODO: Decide how to handle
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response, changeEvent.getId());
             }
 
             //convert from old to new email
@@ -220,13 +214,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                // TODO: Decide how to handle
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response, changeEvent.getId());
             }
         }
 
@@ -340,7 +328,7 @@ public class IterableExtension extends MessageProcessor {
     }
 
     @Override
-    public void processUserAttributeChangeEvent(UserAttributeChangeEvent event) throws IOException {
+    public void processUserAttributeChangeEvent(UserAttributeChangeEvent event) {
         //there's no reason to do this - it's already done at the start of batch processing
         //updateUser(event.getContext());
     }
@@ -521,7 +509,6 @@ public class IterableExtension extends MessageProcessor {
      * Iterable track: https://api.iterable.com/api/docs#events_track
      *
      * @param event the mParticle event
-     * @throws IOException
      */
     @Override
     public void processCustomEvent(CustomEvent event) throws IOException {
@@ -671,41 +658,16 @@ public class IterableExtension extends MessageProcessor {
             SubscribeRequest subscribeRequest = new SubscribeRequest();
             subscribeRequest.listId = entry.getKey();
             subscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
-                if (response.isSuccessful()) {
-                    ListResponse listResponse = response.body();
-                    if (listResponse.failCount > 0) {
-                        throw new IOException("Iterable list subscribe had positive fail count: " + listResponse.failCount);
-                    }
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending list subscribe to Iterable: HTTP " + response.code());
-                }
-            } catch (Exception e) {
-                // TODO: Decide how to handle
-                System.out.println("Error sending list subscribe to Iterable");
-            }
+            Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
+            handleIterableListResponse(response, request.getId());
         }
 
         for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
             UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
             unsubscribeRequest.listId = entry.getKey();
             unsubscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
-                if (response.isSuccessful()) {
-                    ListResponse listResponse = response.body();
-                    if (listResponse.failCount > 0) {
-                        throw new IOException("Iterable list unsubscribe had positive fail count: " + listResponse.failCount);
-                    }
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending list unsubscribe to Iterable: HTTP " + response.code());
-                }
-            } catch (Exception e) {
-                // TODO: Decide how to handle
-                System.out.println("Error sending list unsubscribe to Iterable");
-
-            }
+            Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
+            handleIterableListResponse(response, request.getId());
         }
         return new AudienceMembershipChangeResponse();
     }
@@ -742,13 +704,42 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws IOException {
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
+            String errorBodyCode = null;
+            try {
+                IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
+                errorBodyCode = errorBody.code;
+            } catch (IOException e) {
+                errorBodyCode = "Unable to parse Iterable API code";
+            }
             String id = eventId != null ? eventId.toString() : "Unavailable";
-            IterableExtensionLogger.logApiError(response, errorBody, id);
-            throw new IOException();
+            String url = response.raw().request().url().encodedPath();
+            String responseCode = String.valueOf(response.code());
+            IterableExtensionLogger.logApiError(url, responseCode, errorBodyCode, id);
         }
     }
+
+    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) {
+        if (!response.isSuccessful()) {
+            String errorBodyCode = null;
+            try {
+                IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
+                errorBodyCode = errorBody.code;
+            } catch (IOException e) {
+                errorBodyCode = "Unable to parse Iterable API code";
+            }
+            String id = audienceRequestId != null ? audienceRequestId.toString() : "Unavailable";
+            String url = response.raw().request().url().encodedPath();
+            String responseCode = String.valueOf(response.code());
+            IterableExtensionLogger.logApiError(url, responseCode, errorBodyCode, id);
+        }
+        Boolean hasFailures = response.body().failCount > 0;
+        if (hasFailures) {
+            IterableExtensionLogger.logError(
+                    "List subscribe or unsubscribe request failed count: " + response.body().failCount);
+        }
+    }
+
 }

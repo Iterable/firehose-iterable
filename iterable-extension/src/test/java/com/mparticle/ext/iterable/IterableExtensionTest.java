@@ -981,15 +981,14 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableSuccess() throws IOException{
+    public void testHandleIterableSuccess() {
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+
         IterableExtension.handleIterableResponse(testSuccessResponse,
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
-    }
-
-    @Test(expected = IOException.class)
-    public void testHandleIterableErrorThrowsException() throws IOException {
-        IterableExtension.handleIterableResponse(testErrorResponse,
-                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
+        assertEquals("A success response shouldn't log", "", outContent.toString());
+        System.setOut(System.out);
     }
 
     @Test
@@ -998,12 +997,9 @@ public class IterableExtensionTest {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
-        try {
-            IterableExtension.handleIterableResponse(testErrorResponse,
-                    UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
-        } catch (IOException ignored) {
-        }
-        assertEquals(expectedLogMessage, outContent.toString());
+        IterableExtension.handleIterableResponse(testErrorResponse,
+                UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
+        assertEquals("An error response should log", expectedLogMessage, outContent.toString());
         System.setOut(System.out);
     }
 
