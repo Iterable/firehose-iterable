@@ -1,13 +1,13 @@
 package com.mparticle.ext.iterable;
 
+import org.apache.commons.io.IOUtils;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.Scanner;
 
 public class IngressQueueManager {
   private SqsClient sqsClient;
@@ -18,21 +18,11 @@ public class IngressQueueManager {
     this.queueUrl = queueUrl;
   }
 
-  public void enqueueMessage(InputStream input) {
-    String mparticleRequest = convertInputToString(input);
-    // TODO: remove log statement before sending live traffic
-    System.out.println("Adding message to SQS: " + mparticleRequest);
+  public void enqueueMessage(InputStream input) throws IOException {
+    String mparticleRequest = IOUtils.toString(input, "UTF-8");
     SendMessageRequest req =
         SendMessageRequest.builder().queueUrl(queueUrl).messageBody(mparticleRequest).build();
     sqsClient.sendMessage(req);
-  }
-
-  public static String convertInputToString(InputStream input) {
-    String outputString = null;
-    try (Scanner scanner = new Scanner(input, StandardCharsets.UTF_8.name())) {
-      outputString = scanner.useDelimiter("\\A").next();
-    }
-    return outputString;
   }
 
   public static IngressQueueManager create() {
