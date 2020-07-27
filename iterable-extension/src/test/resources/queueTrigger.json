@@ -1,0 +1,18 @@
+{
+  "Records": [{
+    "messageId": "128d4022-5e6d-4997-a628-cbb49462ca82",
+    "receiptHandle": "AQEB/7/SkPVcRjlpZCJP8ervN84Xu8MEyzmEz1md7/Y+RABol42+F4fH+c1cl6a7piHYrXxc9Vv4h5zQQtH7CbWWS1wuee+9Dc2nYKRYKXt4oqw4J+HxIhm/4R/3ECTPKb5gdAiU5V3N5NqDEfG1dDj6Z/xMEHF0mP7Lm9/3WbcOSDSTADGUt/CUsDSuHlKh3pOiP4EWm4rff/7lz0gxBKSpTlaf46LYQymHgsqIcl+mv3GvUih+a92HmrrC1IYkAlY8Fo3AxCJYhOxHJoFj/eJZJt2eEKUpPj49uVhXGtbaFE1+qtuh0YnnVvhni+uU6GhEjuUbYixVtSIvo23ptWZqDOMW/XRucEmkpWH+1EuVyV2Laxuj0S8BQ8+1tonxE+rgaWIXKs219j176zDMydyzwF8qMx4CL9kC73WxUK92/Jc=",
+    "body": "{\"type\":\"event_processing_request\",\"id\":\"e93aefa4-6804-44a9-ba4c-8f01403236d6\",\"timestamp_ms\":1595815921099,\"account\":{\"account_id\":42750,\"account_settings\":{\"apiKey\":\"redacted\",\"apnsProdIntegrationName\":null,\"apnsSandboxIntegrationName\":null,\"coerceStringsToScalars\":\"True\",\"gcmIntegrationName\":null,\"userIdField\":\"customerId\"}},\"user_identities\":[{\"type\":\"email\",\"encoding\":\"raw\",\"value\":\"example1@iterable.com\"},{\"type\":\"customer\",\"encoding\":\"raw\",\"value\":\"1003\"}],\"user_attributes\":{\"loves_pizza\":\"True\",\"$Mobile\":\"16503926752\"},\"user_attribute_lists\":{},\"runtime_environment\":{\"type\":\"unknown\",\"screen_height\":0,\"screen_width\":0,\"screen_dpi\":0,\"is_debug\":true,\"identities\":[]},\"events\":[{\"type\":\"custom_event\",\"id\":\"d8c169f9-22a3-421e-9824-ce30305aa576\",\"timestamp_ms\":1595815920923,\"session_id\":0,\"name\":\"App Page View\",\"custom_event_type\":\"navigation\",\"attributes\":{\"mParticle Source Feed\":\"python-integration-tester\"}},{\"type\":\"custom_event\",\"id\":\"f81b470e-b54d-4213-ba1c-3d76ef281084\",\"timestamp_ms\":1595815920923,\"session_id\":0,\"name\":\"App Page View\",\"custom_event_type\":\"navigation\",\"attributes\":{\"mParticle Source Feed\":\"python-integration-tester\"}},{\"type\":\"custom_event\",\"id\":\"8000f71d-acb0-43f1-bf4e-dc8c1f792089\",\"timestamp_ms\":1595815920923,\"session_id\":0,\"name\":\"App Page View\",\"custom_event_type\":\"navigation\",\"attributes\":{\"mParticle Source Feed\":\"python-integration-tester\"}},{\"type\":\"custom_event\",\"id\":\"056d1c5e-7152-42fb-8663-4ac7ed3d50cd\",\"timestamp_ms\":1595815920923,\"session_id\":0,\"name\":\"App Page View\",\"custom_event_type\":\"navigation\",\"attributes\":{\"mParticle Source Feed\":\"python-integration-tester\"}},{\"type\":\"custom_event\",\"id\":\"410296fd-c285-41e3-92d5-dbfb4e53aee0\",\"timestamp_ms\":1595815920923,\"session_id\":0,\"name\":\"App Page View\",\"custom_event_type\":\"navigation\",\"attributes\":{\"mParticle Source Feed\":\"python-integration-tester\"}}],\"source_channel\":\"partner\",\"mpid\":\"-5227515829034156637\",\"device_application_stamp\":\"00000000-0000-4000-8000-000000000de2\",\"system_notifications\":[],\"firehose_version\":\"2.2.0\"}",
+    "attributes": {
+      "ApproximateReceiveCount": "89",
+      "SentTimestamp": "1595815921648",
+      "SenderId": "redacted",
+      "ApproximateFirstReceiveTimestamp": "1595815921648"
+    },
+    "messageAttributes": {},
+    "md5OfBody": "496b11e57b92012e2d5ec258a2486db9",
+    "eventSource": "aws:sqs",
+    "eventSourceARN": "redacted",
+    "awsRegion": "redacted"
+  }]
+}
