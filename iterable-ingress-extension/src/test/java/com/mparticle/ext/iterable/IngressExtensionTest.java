@@ -3,8 +3,6 @@ package com.mparticle.ext.iterable;
 import com.mparticle.sdk.model.MessageSerializer;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRequest;
 import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeResponse;
-import com.mparticle.sdk.model.audienceprocessing.AudienceSubscriptionRequest;
-import com.mparticle.sdk.model.audienceprocessing.AudienceSubscriptionResponse;
 import com.mparticle.sdk.model.eventprocessing.*;
 import com.mparticle.sdk.model.registration.*;
 import org.junit.Before;
@@ -14,21 +12,21 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.mparticle.ext.iterable.IterableExtensionIngress.SETTING_API_KEY;
-import static com.mparticle.ext.iterable.IterableExtensionIngress.SETTING_USER_ID_FIELD;
+import static com.mparticle.ext.iterable.IngressExtension.SETTING_API_KEY;
+import static com.mparticle.ext.iterable.IngressExtension.SETTING_USER_ID_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class IterableExtensionIngressTest {
+public class IngressExtensionTest {
 
   private static final String TEST_API_KEY = "foo api key";
   private static MessageSerializer serializer;
-  private static IterableExtensionIngress ingressExtension;
+  private static IngressExtension ingressExtension;
 
   @Before
   public void setup() {
     serializer = new MessageSerializer();
-    ingressExtension = new IterableExtensionIngress();
+    ingressExtension = new IngressExtension();
   }
 
   @Test
@@ -92,15 +90,6 @@ public class IterableExtensionIngressTest {
   public void testProcessAudienceMembershipChangeRequest() throws Exception {
     AudienceMembershipChangeResponse response =
         ingressExtension.processAudienceMembershipChangeRequest(new AudienceMembershipChangeRequest());
-    System.out.println();
-    System.out.println(serializer.serialize(response));
-    System.out.println();
-  }
-
-  @Test
-  public void testProcessAudienceSubscriptionRequest() throws Exception {
-    AudienceSubscriptionResponse response =
-        ingressExtension.processAudienceSubscriptionRequest(new AudienceSubscriptionRequest());
     System.out.println();
     System.out.println(serializer.serialize(response));
     System.out.println();
