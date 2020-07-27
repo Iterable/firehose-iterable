@@ -1,12 +1,9 @@
 package com.mparticle.ext.iterable;
 
-import org.apache.commons.io.IOUtils;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Objects;
 
 public class IngressQueueManager {
@@ -18,10 +15,9 @@ public class IngressQueueManager {
     this.queueUrl = queueUrl;
   }
 
-  public void enqueueMessage(InputStream input) throws IOException {
-    String mparticleRequest = IOUtils.toString(input, "UTF-8");
+  public void enqueueMessage(String message) {
     SendMessageRequest req =
-        SendMessageRequest.builder().queueUrl(queueUrl).messageBody(mparticleRequest).build();
+        SendMessageRequest.builder().queueUrl(queueUrl).messageBody(message).build();
     sqsClient.sendMessage(req);
   }
 
