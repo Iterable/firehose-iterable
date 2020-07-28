@@ -14,6 +14,7 @@ import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -309,7 +310,7 @@ public class IterableExtensionTest {
         assertEquals(event.getId().toString(), argument.getValue().id);
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessAndroidPushMessageReceiptEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -326,12 +327,9 @@ public class IterableExtensionTest {
         event.setRequest(eventProcessingRequest);
         IOException exception = null;
         event.setPayload("anything to get past null check");
-        try {
-            extension.processPushMessageReceiptEvent(event);
-        } catch (IOException ioe) {
-            exception = ioe;
-        }
-        assertNotNull("Iterable should have thrown an exception due to missing email/customerid", exception);
+        // This event won't be processed due to missing email/customerid;
+        extension.processPushMessageReceiptEvent(event);
+        Mockito.verifyZeroInteractions(extension.iterableService);
 
         List<UserIdentity> userIdentities = new LinkedList<>();
         userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
@@ -355,7 +353,7 @@ public class IterableExtensionTest {
         assertEquals("1dce4e505b11111ca1111d6fdd774fbd", argument.getValue().messageId);
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessiOSPushMessageReceiptEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -372,12 +370,11 @@ public class IterableExtensionTest {
         event.setRequest(eventProcessingRequest);
         IOException exception = null;
         event.setPayload("anything to get past null check");
-        try {
-            extension.processPushMessageReceiptEvent(event);
-        } catch (IOException ioe) {
-            exception = ioe;
-        }
-        assertNotNull("Iterable should have thrown an exception due to missing email/customerid", exception);
+
+        // This event won't be processed due to missing email/customerid;
+        extension.processPushMessageReceiptEvent(event);
+        Mockito.verifyZeroInteractions(extension.iterableService);
+
 
         List<UserIdentity> userIdentities = new LinkedList<>();
         userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
