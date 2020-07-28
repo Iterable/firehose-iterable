@@ -2,7 +2,6 @@ package com.mparticle.ext.iterable;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.mparticle.sdk.model.Message;
 import com.mparticle.sdk.model.MessageSerializer;
 import org.apache.commons.io.IOUtils;

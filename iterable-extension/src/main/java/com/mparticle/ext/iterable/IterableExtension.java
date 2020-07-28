@@ -30,7 +30,6 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
-    public static IterableExtensionLogger logger = new IterableExtensionLogger();
     IterableService iterableService;
 
     @Override
@@ -71,7 +70,7 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        logger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        IterableExtensionLogger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                         return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
@@ -157,7 +156,7 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            logger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            IterableExtensionLogger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
             return;
         }
 
@@ -170,7 +169,7 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            logger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            IterableExtensionLogger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
             return;
         }
 
@@ -581,7 +580,7 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                logger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                IterableExtensionLogger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
                 return;
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -712,7 +711,7 @@ public class IterableExtension extends MessageProcessor {
     static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableIterableError {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            logger.logApiError(response, eventId);
+            IterableExtensionLogger.logApiError(response, eventId);
             if (response.code() == 429) {
                 throw new RetriableIterableError();
             }
@@ -721,14 +720,14 @@ public class IterableExtension extends MessageProcessor {
 
     static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableIterableError {
         if (!response.isSuccessful()) {
-            logger.logApiError(response, audienceRequestId);
+            IterableExtensionLogger.logApiError(response, audienceRequestId);
             if (response.code() == 429) {
                 throw new RetriableIterableError();
             }
         }
         Boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
-            logger.logError(
+            IterableExtensionLogger.logError(
                     "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }
