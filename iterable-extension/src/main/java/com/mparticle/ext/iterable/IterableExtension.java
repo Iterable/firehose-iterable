@@ -30,6 +30,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
+    public static IterableExtensionLogger logger = new IterableExtensionLogger();
     IterableService iterableService;
 
     @Override
@@ -70,7 +71,8 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        throw new IOException("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        logger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
                     Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
@@ -155,7 +157,8 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            throw new IOException("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            logger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            return;
         }
 
         request.device.token = event.getToken();
@@ -167,7 +170,8 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            throw new IOException("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            logger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            return;
         }
 
         Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
@@ -409,6 +413,7 @@ public class IterableExtension extends MessageProcessor {
         }
 
         if (isEmpty(id)) {
+            // This error should stop processing for the entire batch.
             throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
@@ -576,7 +581,8 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                throw new IOException("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                logger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                return;
             }
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
@@ -703,42 +709,27 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) {
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableIterableError {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            String errorBodyCode = null;
-            try {
-                IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
-                errorBodyCode = errorBody.code;
-            } catch (IOException e) {
-                errorBodyCode = "Unable to parse Iterable API code";
+            logger.logApiError(response, eventId);
+            if (response.code() == 429) {
+                throw new RetriableIterableError();
             }
-            String id = eventId != null ? eventId.toString() : "Unavailable";
-            String url = response.raw().request().url().encodedPath();
-            String responseCode = String.valueOf(response.code());
-            IterableExtensionLogger.logApiError(url, responseCode, errorBodyCode, id);
         }
     }
 
-    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) {
+    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableIterableError {
         if (!response.isSuccessful()) {
-            String errorBodyCode = null;
-            try {
-                IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
-                errorBodyCode = errorBody.code;
-            } catch (IOException e) {
-                errorBodyCode = "Unable to parse Iterable API code";
+            logger.logApiError(response, audienceRequestId);
+            if (response.code() == 429) {
+                throw new RetriableIterableError();
             }
-            String id = audienceRequestId != null ? audienceRequestId.toString() : "Unavailable";
-            String url = response.raw().request().url().encodedPath();
-            String responseCode = String.valueOf(response.code());
-            IterableExtensionLogger.logApiError(url, responseCode, errorBodyCode, id);
         }
         Boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
-            IterableExtensionLogger.logError(
+            logger.logError(
                     "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }
-
 }
