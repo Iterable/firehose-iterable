@@ -896,7 +896,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableSuccess() {
+    public void testHandleIterableResponseSuccess() throws RetriableIterableError {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
@@ -907,7 +907,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableErrorLogsError() {
+    public void testHandleIterableResponseLogsError() throws RetriableIterableError {
         String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
@@ -916,6 +916,20 @@ public class IterableExtensionTest {
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         assertEquals("An error response should log", expectedLogMessage, outContent.toString());
         System.setOut(System.out);
+    }
+
+    @Test(expected = RetriableIterableError.class)
+    public void testHandleIterableResponseWith429() throws RetriableIterableError {
+        Response itbl492 = Response.error(429, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableResponse(itbl492, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableIterableError.class)
+    public void testHandleIterableListResponseWith429() throws RetriableIterableError {
+        Response itbl492 = Response.error(429, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableListResponse(itbl492, UUID.randomUUID());
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
