@@ -164,13 +164,8 @@ public class IngressExtension extends MessageProcessor {
   }
 
   @Override
-  /**
-   * This method isn't supported by the Iterable Audience Integration. The
-   * Integration requires mParticle end-users to supply the listId for a
-   * pre-existing Iterable list.
-   */
   public AudienceSubscriptionResponse processAudienceSubscriptionRequest(
-      AudienceSubscriptionRequest request) throws UnsupportedOperationException {
-      throw new UnsupportedOperationException("This feature isn't implemented");
+      AudienceSubscriptionRequest request) throws IOException {
+      return super.processAudienceSubscriptionRequest(request);
   }
 }
