@@ -24,7 +24,7 @@ public interface IterableService {
 
     String HOST = "api.iterable.com";
     String PARAM_API_KEY = "api_key";
-    long SERVICE_TIMEOUT_MILLIS = 500;
+    long SERVICE_TIMEOUT_SECONDS = 60;
 
     @POST("api/events/track")
     Call<IterableApiResponse> track(@Query(IterableService.PARAM_API_KEY) String apiKey, @Body TrackRequest trackRequest);
@@ -73,8 +73,8 @@ public interface IterableService {
     static IterableService newInstance() {
         final OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(new HeadersInterceptor())
-                .connectTimeout(SERVICE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-                .readTimeout(SERVICE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                .connectTimeout(SERVICE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(SERVICE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .build();
         final HttpUrl url = new HttpUrl.Builder()
                 .scheme("https")
