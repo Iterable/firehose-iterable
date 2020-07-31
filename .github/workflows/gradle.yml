@@ -27,16 +27,16 @@ jobs:
         aws_region: us-east-1
         function_name: mparticle_sqs_to_api_test
         zip_file: iterable-extension/build/distributions/iterable-extension.zip
-      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_sqs_to_api_test --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name $function_name --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
     - name: Deploy IterableIngressExtension to Test Lambda
       if: github.ref == 'refs/heads/develop'
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws_region: us-east-1
-        function_name: mparticle_iterable_firehose_test
+        function_name: mparticle_to_sqs_test
         zip_file: iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip
-      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_iterable_firehose_test --zip-file fileb://iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name $function_name --zip-file fileb://iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip > /dev/null
     - name: Deploy IterableExtentsion to production Lambda
       if: github.ref == 'refs/heads/master'
       env:
@@ -45,7 +45,7 @@ jobs:
         aws_region: us-east-1
         function_name: mparticle_sqs_to_api
         zip_file: iterable-extension/build/distributions/iterable-extension.zip
-      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_sqs_to_api --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name $function_name --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
     - name: Deploy IterableIngressExtension to production Lambda
       if: github.ref == 'refs/heads/master'
       env:
@@ -54,4 +54,4 @@ jobs:
         aws_region: us-east-1
         function_name: mparticle_to_sqs
         zip_file: iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip
-      run: aws lambda update-function-code --region us-east-1 --function-name mparticle_to_sqs --zip-file fileb://iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name $function_name --zip-file fileb://iterable-ingress-extension/build/distributions/iterable-ingress-extension.zip > /dev/null
