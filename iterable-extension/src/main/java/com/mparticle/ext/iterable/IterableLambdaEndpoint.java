@@ -15,7 +15,6 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   static MessageSerializer serializer = new MessageSerializer();
   static IterableExtension processor = new IterableExtension();
-  static IterableExtensionLogger logger = new IterableExtensionLogger();
   static final ObjectMapper mapper = new ObjectMapper();
 
   @Override
@@ -32,7 +31,7 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
     } catch (RetriableIterableError e) {
       throw new RetriableIterableError("A retriable error occurred during processing");
     } catch (IOException e) {
-      logger.logError("An unexpected error occurred");
+      IterableExtensionLogger.logError("An unexpected error occurred");
       e.printStackTrace();
     }
 
