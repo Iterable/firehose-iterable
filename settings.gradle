@@ -1,2 +1,3 @@
 include ':iterable-extension'
+include ':iterable-ingress-extension'
 include ':iterable-java-sdk'

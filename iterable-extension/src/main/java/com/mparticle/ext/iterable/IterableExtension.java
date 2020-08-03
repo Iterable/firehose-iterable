@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 public class IterableExtension extends MessageProcessor {
 
-    public static final String NAME = "Iterable";
     public static final String SETTING_API_KEY = "apiKey";
     public static final String SETTING_GCM_NAME_KEY = "gcmIntegrationName";
     public static final String SETTING_APNS_KEY = "apnsProdIntegrationName";
@@ -32,6 +31,12 @@ public class IterableExtension extends MessageProcessor {
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
     IterableService iterableService;
+
+    @Override
+    public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
+        // Processing ModuleRegistrationRequests is handled by the Ingress Lambda.
+        return new ModuleRegistrationResponse("Iterable", "1.6.0");
+    }
 
     @Override
     public EventProcessingResponse processEventProcessingRequest(EventProcessingRequest request) throws IOException {
@@ -65,7 +70,8 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        throw new IOException("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        IterableExtensionLogger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
                     Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
@@ -150,7 +156,8 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            throw new IOException("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            IterableExtensionLogger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            return;
         }
 
         request.device.token = event.getToken();
@@ -162,7 +169,8 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            throw new IOException("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            IterableExtensionLogger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            return;
         }
 
         Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
@@ -198,13 +206,7 @@ public class IterableExtension extends MessageProcessor {
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                // TODO: Decide how to handle
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response, changeEvent.getId());
             }
 
             //convert from old to new email
@@ -214,13 +216,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                // TODO: Decide how to handle
-                if (response.isSuccessful()) {
-                    IterableApiResponse apiResponse = response.body();
-                    if (apiResponse != null && !apiResponse.isSuccess()) {
-                        throw new IOException("Error while calling updateEmail() on iterable: HTTP " + apiResponse.code);
-                    }
-                }
+                handleIterableResponse(response, changeEvent.getId());
             }
         }
 
@@ -334,7 +330,7 @@ public class IterableExtension extends MessageProcessor {
     }
 
     @Override
-    public void processUserAttributeChangeEvent(UserAttributeChangeEvent event) throws IOException {
+    public void processUserAttributeChangeEvent(UserAttributeChangeEvent event) {
         //there's no reason to do this - it's already done at the start of batch processing
         //updateUser(event.getContext());
     }
@@ -416,111 +412,10 @@ public class IterableExtension extends MessageProcessor {
         }
 
         if (isEmpty(id)) {
+            // This error should stop processing for the entire batch.
             throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
-    }
-
-    @Override
-    public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
-        ModuleRegistrationResponse response = new ModuleRegistrationResponse(NAME, "1.6.0");
-
-        Permissions permissions = new Permissions();
-        permissions.setUserIdentities(
-                Arrays.asList(
-                        new UserIdentityPermission(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, false),
-                        new UserIdentityPermission(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, false)
-                )
-        );
-        permissions.setDeviceIdentities(
-                Arrays.asList(
-                        new DeviceIdentityPermission(DeviceIdentity.Type.GOOGLE_CLOUD_MESSAGING_TOKEN, Identity.Encoding.RAW),
-                        new DeviceIdentityPermission(DeviceIdentity.Type.APPLE_PUSH_NOTIFICATION_TOKEN, Identity.Encoding.RAW),
-                        new DeviceIdentityPermission(DeviceIdentity.Type.IOS_VENDOR_ID, Identity.Encoding.RAW),
-                        new DeviceIdentityPermission(DeviceIdentity.Type.ANDROID_ID, Identity.Encoding.RAW),
-                        new DeviceIdentityPermission(DeviceIdentity.Type.GOOGLE_ADVERTISING_ID, Identity.Encoding.RAW)
-                )
-        );
-        permissions.setAllowAccessDeviceApplicationStamp(true);
-        permissions.setAllowUserAttributes(true);
-        permissions.setAllowDeviceInformation(true);
-        permissions.setAllowAccessMpid(true);
-        response.setPermissions(permissions);
-        response.setDescription("<a href=\"https://www.iterable.com\">Iterable</a> makes consumer growth marketing and user engagement simple. With Iterable, marketers send the right message, to the right device, at the right time.");
-        EventProcessingRegistration eventProcessingRegistration = new EventProcessingRegistration()
-                .setSupportedRuntimeEnvironments(
-                        Arrays.asList(
-                                RuntimeEnvironment.Type.ANDROID,
-                                RuntimeEnvironment.Type.IOS,
-                                RuntimeEnvironment.Type.MOBILEWEB,
-                                RuntimeEnvironment.Type.UNKNOWN)
-                );
-        eventProcessingRegistration.setPushMessagingProviderId("itbl");
-
-        List<Setting> eventSettings = new ArrayList<>();
-        List<Setting> audienceSettings = new ArrayList<>();
-        Setting apiKey = new TextSetting(SETTING_API_KEY, "API Key")
-                .setIsRequired(true)
-                .setIsConfidential(true)
-                .setDescription("API key used to connect to the Iterable API - see the Integrations section of your Iterable account.");
-        Setting userIdField = new TextSetting(SETTING_USER_ID_FIELD, "User ID")
-                .setIsRequired(true)
-                .setDefaultValue(USER_ID_FIELD_CUSTOMER_ID)
-                .setDescription("Select which user identity to forward to Iterable as your customer's user ID.");
-
-        audienceSettings.add(apiKey);
-        audienceSettings.add(userIdField);
-
-        eventSettings.add(apiKey);
-        eventSettings.add(
-                new TextSetting(SETTING_GCM_NAME_KEY, "GCM Push Integration Name")
-                        .setIsRequired(false)
-                        .setDescription("GCM integration name set up in the Mobile Push section of your Iterable account.")
-
-        );
-        eventSettings.add(
-                new TextSetting(SETTING_APNS_SANDBOX_KEY, "APNS Sandbox Integration Name")
-                        .setIsRequired(false)
-                        .setDescription("APNS Sandbox integration name set up in the Mobile Push section of your Iterable account.")
-        );
-        eventSettings.add(
-                new TextSetting(SETTING_APNS_KEY, "APNS Production Integration Name")
-                        .setIsRequired(false)
-                        .setDescription("APNS Production integration name set up in the Mobile Push section of your Iterable account.")
-        );
-        eventSettings.add(
-                new BooleanSetting(SETTING_COERCE_STRINGS_TO_SCALARS, "Coerce Strings to Scalars")
-                        .setIsChecked(true)
-                        .setDescription("If enabled, mParticle will attempt to coerce string attributes into scalar types (integer, boolean, and float).")
-        );
-        eventProcessingRegistration.setAccountSettings(eventSettings);
-
-        List<Setting> connectionSettings = new ArrayList<>();
-        connectionSettings.add(userIdField);
-        eventProcessingRegistration.setConnectionSettings(connectionSettings);
-
-        // Specify supported event types
-        List<Event.Type> supportedEventTypes = Arrays.asList(
-                Event.Type.CUSTOM_EVENT,
-                Event.Type.PUSH_SUBSCRIPTION,
-                Event.Type.PUSH_MESSAGE_RECEIPT,
-                Event.Type.PUSH_MESSAGE_OPEN,
-                Event.Type.USER_IDENTITY_CHANGE,
-                Event.Type.PRODUCT_ACTION);
-
-        eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
-        response.setEventProcessingRegistration(eventProcessingRegistration);
-        AudienceProcessingRegistration audienceRegistration = new AudienceProcessingRegistration();
-        audienceRegistration.setAccountSettings(audienceSettings);
-        List<Setting> subscriptionSettings = new LinkedList<>();
-        IntegerSetting listIdSetting = new IntegerSetting(SETTING_LIST_ID, "List ID");
-        listIdSetting.setIsRequired(true);
-        listIdSetting.setDescription("The ID of the Iterable list to populate with the users from this segment.");
-        subscriptionSettings.add(listIdSetting);
-        audienceRegistration.setAudienceConnectionSettings(subscriptionSettings);
-        response.setAudienceProcessingRegistration(audienceRegistration);
-
-        return response;
     }
 
     private static List<Integer> convertToIntList(String csv){
@@ -617,7 +512,6 @@ public class IterableExtension extends MessageProcessor {
      * Iterable track: https://api.iterable.com/api/docs#events_track
      *
      * @param event the mParticle event
-     * @throws IOException
      */
     @Override
     public void processCustomEvent(CustomEvent event) throws IOException {
@@ -686,7 +580,8 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                throw new IOException("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                IterableExtensionLogger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                return;
             }
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
@@ -721,7 +616,6 @@ public class IterableExtension extends MessageProcessor {
      *
      * @param request the mParticle request
      * @return a response that indicates the request was processed successfully
-     * @throws IOException
      */
     @Override
     public AudienceMembershipChangeResponse processAudienceMembershipChangeRequest(AudienceMembershipChangeRequest request) throws IOException {
@@ -768,41 +662,16 @@ public class IterableExtension extends MessageProcessor {
             SubscribeRequest subscribeRequest = new SubscribeRequest();
             subscribeRequest.listId = entry.getKey();
             subscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
-                if (response.isSuccessful()) {
-                    ListResponse listResponse = response.body();
-                    if (listResponse.failCount > 0) {
-                        throw new IOException("Iterable list subscribe had positive fail count: " + listResponse.failCount);
-                    }
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending list subscribe to Iterable: HTTP " + response.code());
-                }
-            } catch (Exception e) {
-                // TODO: Decide how to handle
-                System.out.println("Error sending list subscribe to Iterable");
-            }
+            Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
+            handleIterableListResponse(response, request.getId());
         }
 
         for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
             UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
             unsubscribeRequest.listId = entry.getKey();
             unsubscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
-                if (response.isSuccessful()) {
-                    ListResponse listResponse = response.body();
-                    if (listResponse.failCount > 0) {
-                        throw new IOException("Iterable list unsubscribe had positive fail count: " + listResponse.failCount);
-                    }
-                } else if (!response.isSuccessful()) {
-                    throw new IOException("Error sending list unsubscribe to Iterable: HTTP " + response.code());
-                }
-            } catch (Exception e) {
-                // TODO: Decide how to handle
-                System.out.println("Error sending list unsubscribe to Iterable");
-
-            }
+            Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
+            handleIterableListResponse(response, request.getId());
         }
         return new AudienceMembershipChangeResponse();
     }
@@ -839,13 +708,27 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws IOException {
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
-            String id = eventId != null ? eventId.toString() : "Unavailable";
-            IterableExtensionLogger.logApiError(response, errorBody, id);
-            throw new IOException();
+            IterableExtensionLogger.logApiError(response, eventId);
+            if (response.code() == 429) {
+                throw new RetriableError();
+            }
+        }
+    }
+
+    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
+        if (!response.isSuccessful()) {
+            IterableExtensionLogger.logApiError(response, audienceRequestId);
+            if (response.code() == 429) {
+                throw new RetriableError();
+            }
+        }
+        Boolean hasFailures = response.body().failCount > 0;
+        if (hasFailures) {
+            IterableExtensionLogger.logError(
+                    "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }
 }

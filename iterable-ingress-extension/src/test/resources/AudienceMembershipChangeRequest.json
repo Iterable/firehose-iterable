@@ -1,0 +1,78 @@
+{
+  "type" : "audience_membership_change_request",
+  "id" : "475b8e13-e5b8-4c90-946f-aea3634b4bdc",
+  "timestamp_ms" : 1586980879791,
+  "firehose_version" : "2.4.0",
+  "account" : {
+    "account_id" : 123456,
+    "account_settings" : {
+      "Example String Setting" : "Example Setting Value",
+      "Example Boolean Setting" : "false",
+      "Example Integer Setting" : "123"
+    }
+  },
+  "user_profiles" : [ {
+    "user_identities" : [ {
+      "type" : "email",
+      "encoding" : "md5",
+      "value" : "e179e95c00e7718ab4a23840f992ea63"
+    }, {
+      "type" : "customer",
+      "encoding" : "md5",
+      "value" : "4739c5c11d833bb199c16ff95a92b267"
+    } ],
+    "device_identities" : [ {
+      "type" : "ios_advertising_id",
+      "encoding" : "raw",
+      "value" : "66b728c2-f9a4-4d87-82ef-ce07414fe3f7"
+    }, {
+      "type" : "ios_vendor_id",
+      "encoding" : "raw",
+      "value" : "97b826c2-ab80-4876-a184-db36cc39b1ee"
+    }, {
+      "type" : "google_advertising_id",
+      "encoding" : "raw",
+      "value" : "31a22ef0-f119-48d4-b009-a217a26a862a"
+    }, {
+      "type" : "android_id",
+      "encoding" : "raw",
+      "value" : "a0504a8cfa15ce2c"
+    } ],
+    "partner_identities" : [ {
+      "type" : "partner_id",
+      "encoding" : "raw",
+      "value" : "partnerId"
+    } ],
+    "audiences" : [ {
+      "audience_id" : 456,
+      "audience_name" : "Example Audience Name",
+      "audience_subscription_settings" : {
+        "Example Audience-specific setting" : "Example Value"
+      },
+      "action" : "add"
+    }, {
+      "audience_id" : 789,
+      "audience_name" : "Example Audience Name 2",
+      "audience_subscription_settings" : {
+        "Example Audience-specific setting" : "Example Value 2"
+      },
+      "action" : "attribute_update",
+      "user_attributes" : [ {
+        "key" : "Some Key",
+        "value" : "9999999",
+        "action" : "upsert"
+      }, {
+        "key" : "Churned",
+        "action" : "delete"
+      }, { } ]
+    }, {
+      "audience_id" : 654,
+      "audience_name" : "Example Audience Name 4",
+      "audience_subscription_settings" : {
+        "Example Audience-specific setting" : "Example Value 4"
+      },
+      "action" : "delete"
+    } ],
+    "mpid" : "12345"
+  } ]
+}
