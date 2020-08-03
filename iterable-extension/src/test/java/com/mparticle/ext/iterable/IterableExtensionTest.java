@@ -6,15 +6,11 @@ import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeReques
 import com.mparticle.sdk.model.audienceprocessing.UserProfile;
 import com.mparticle.sdk.model.eventprocessing.*;
 import com.mparticle.sdk.model.registration.Account;
-import com.mparticle.sdk.model.registration.ModuleRegistrationResponse;
-import com.mparticle.sdk.model.registration.Setting;
-import com.mparticle.sdk.model.registration.UserIdentityPermission;
 import okhttp3.MediaType;
 import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -893,7 +889,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableResponseSuccess() throws RetriableIterableError {
+    public void testHandleIterableResponseSuccess() throws RetriableError {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
@@ -904,7 +900,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableResponseLogsError() throws RetriableIterableError {
+    public void testHandleIterableResponseLogsError() throws RetriableError {
         String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
@@ -915,15 +911,15 @@ public class IterableExtensionTest {
         System.setOut(System.out);
     }
 
-    @Test(expected = RetriableIterableError.class)
-    public void testHandleIterableResponseWith429() throws RetriableIterableError {
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableResponseWith429() throws RetriableError {
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
         IterableExtension.handleIterableResponse(itbl492, UUID.randomUUID());
     }
 
-    @Test(expected = RetriableIterableError.class)
-    public void testHandleIterableListResponseWith429() throws RetriableIterableError {
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableListResponseWith429() throws RetriableError {
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
         IterableExtension.handleIterableListResponse(itbl492, UUID.randomUUID());

@@ -708,21 +708,21 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableIterableError {
+    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
             IterableExtensionLogger.logApiError(response, eventId);
             if (response.code() == 429) {
-                throw new RetriableIterableError();
+                throw new RetriableError();
             }
         }
     }
 
-    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableIterableError {
+    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
             IterableExtensionLogger.logApiError(response, audienceRequestId);
             if (response.code() == 429) {
-                throw new RetriableIterableError();
+                throw new RetriableError();
             }
         }
         Boolean hasFailures = response.body().failCount > 0;
