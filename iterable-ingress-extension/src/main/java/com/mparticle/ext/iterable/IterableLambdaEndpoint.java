@@ -23,8 +23,6 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       queueManager = IngressQueueManager.create();
     }
     String mparticleRequest = IOUtils.toString(input, "UTF-8");
-    // TODO: remove
-    System.out.println("Adding message to queue: " + mparticleRequest);
     queueManager.enqueueMessage(mparticleRequest);
 
     Message request = serializer.deserialize(mparticleRequest, Message.class);

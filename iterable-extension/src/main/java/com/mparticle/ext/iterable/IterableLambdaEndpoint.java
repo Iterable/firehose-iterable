@@ -19,22 +19,18 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
-      throws RetriableIterableError {
+      throws RetriableError {
     try {
-      // TODO - remove log statement before launching in prod
       String inputString = IOUtils.toString(input, "UTF-8");
-      System.out.println("Received trigger from queue: " + inputString);
-
       Message request = parseQueueTrigger(inputString);
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);
-    } catch (RetriableIterableError e) {
-      throw new RetriableIterableError("A retriable error occurred during processing");
+    } catch (RetriableError e) {
+      throw new RetriableError("A retriable error occurred during processing");
     } catch (IOException e) {
       IterableExtensionLogger.logError("An unexpected error occurred");
       e.printStackTrace();
     }
-
   }
 
   public static Message parseQueueTrigger(String triggerString) throws IOException {
