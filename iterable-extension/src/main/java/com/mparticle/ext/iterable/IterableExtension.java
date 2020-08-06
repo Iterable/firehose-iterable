@@ -662,17 +662,32 @@ public class IterableExtension extends MessageProcessor {
             SubscribeRequest subscribeRequest = new SubscribeRequest();
             subscribeRequest.listId = entry.getKey();
             subscribeRequest.subscribers = entry.getValue();
-            Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
-            handleIterableListResponse(response, request.getId());
+            try {
+                Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
+                handleIterableListResponse(response, request.getId());
+            } catch (Exception e) {
+                Boolean isApiKeyNull = getApiKey(request) == null;
+                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
+                        "ApiKey null: " + isApiKeyNull);
+                e.printStackTrace();
+            }
+
         }
 
         for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
             UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
             unsubscribeRequest.listId = entry.getKey();
             unsubscribeRequest.subscribers = entry.getValue();
-            Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
-            handleIterableListResponse(response, request.getId());
+            try {
+                Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
+                handleIterableListResponse(response, request.getId());
+            } catch (Exception e) {
+                Boolean isApiKeyNull = getApiKey(request) == null;
+                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
+                        "ApiKey null: " + isApiKeyNull);
+                e.printStackTrace();
         }
+    }
         return new AudienceMembershipChangeResponse();
     }
 
