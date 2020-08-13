@@ -569,6 +569,14 @@ public class IterableExtension extends MessageProcessor {
         return converted;
     }
 
+    /**
+     * Map mParticle `PushMessageReceiptEvent` to Iterable `trackPushOpen` request.
+     *
+     * mParticle push_message event https://docs.mparticle.com/developers/server/json-reference#push_message
+     * Iterable trackPushOpen request: https://api.iterable.com/api/docs#events_trackPushOpen
+     *
+     * @param event the mParticle event
+     */
     @Override
     public void processPushMessageReceiptEvent(PushMessageReceiptEvent event) throws IOException {
         // Skip processing if the SDK is present - it tracks opens automatically
