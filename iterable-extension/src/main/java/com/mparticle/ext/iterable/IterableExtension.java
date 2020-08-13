@@ -589,18 +589,30 @@ public class IterableExtension extends MessageProcessor {
                 //Android and iOS have differently encoded payload formats. See the tests for examples.
                 if (event.getRequest().getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
                     Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
+                    request.campaignId = convertItblPayloadFieldToInt(iterableMap.get("campaignId"));
+                    request.templateId = convertItblPayloadFieldToInt(iterableMap.get("templateId"));
                     request.messageId = (String) iterableMap.get("messageId");
                 } else {
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
+                    request.campaignId = convertItblPayloadFieldToInt(((Map) payload.get("itbl")).get("campaignId"));
+                    request.templateId = convertItblPayloadFieldToInt(((Map) payload.get("itbl")).get("templateId"));
                     request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
+                }
+                if (request.campaignId == 0 || request.templateId == 0) {
+                    IterableExtensionLogger.logError("Unable to parse 'itbl' push payload");
+                    return;
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
                 handleIterableResponse(response, event.getId());
             }
+        }
+    }
+
+    public static Integer convertItblPayloadFieldToInt(Object itblField) {
+        if (itblField instanceof Integer) {
+            return (Integer) itblField;
+        } else {
+            return 0;
         }
     }
 
