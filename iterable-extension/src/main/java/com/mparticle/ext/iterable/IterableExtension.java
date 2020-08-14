@@ -607,7 +607,7 @@ public class IterableExtension extends MessageProcessor {
                     request.messageId = (String) iterableMap.get("messageId");
                 }
                 if (request.campaignId == 0 || request.templateId == 0) {
-                    IterableExtensionLogger.logError("Unable to parse 'itbl' push payload");
+                    // Proof sends don't have a campaignId
                     return;
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
