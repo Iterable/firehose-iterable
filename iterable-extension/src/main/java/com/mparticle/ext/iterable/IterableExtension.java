@@ -601,9 +601,10 @@ public class IterableExtension extends MessageProcessor {
                     request.templateId = convertItblPayloadFieldToInt(iterableMap.get("templateId"));
                     request.messageId = (String) iterableMap.get("messageId");
                 } else {
-                    request.campaignId = convertItblPayloadFieldToInt(((Map) payload.get("itbl")).get("campaignId"));
-                    request.templateId = convertItblPayloadFieldToInt(((Map) payload.get("itbl")).get("templateId"));
-                    request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
+                    Map<String, Object> iterableMap = (Map) payload.get("itbl");
+                    request.campaignId = convertItblPayloadFieldToInt(iterableMap.get("campaignId"));
+                    request.templateId = convertItblPayloadFieldToInt(iterableMap.get("templateId"));
+                    request.messageId = (String) iterableMap.get("messageId");
                 }
                 if (request.campaignId == 0 || request.templateId == 0) {
                     IterableExtensionLogger.logError("Unable to parse 'itbl' push payload");
