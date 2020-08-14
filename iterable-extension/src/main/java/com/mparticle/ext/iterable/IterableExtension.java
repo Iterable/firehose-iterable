@@ -30,7 +30,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
-    IterableService iterableService;
+    IterableService iterableService = IterableService.newInstance();
 
     @Override
     public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
@@ -40,9 +40,6 @@ public class IterableExtension extends MessageProcessor {
 
     @Override
     public EventProcessingResponse processEventProcessingRequest(EventProcessingRequest request) throws IOException {
-        if (iterableService == null) {
-            iterableService = IterableService.newInstance();
-        }
         Collections.sort(
                 request.getEvents(),
                 (a, b) -> a.getTimestamp() > b.getTimestamp() ? 1 : a.getTimestamp() == b.getTimestamp() ? 0 : -1
