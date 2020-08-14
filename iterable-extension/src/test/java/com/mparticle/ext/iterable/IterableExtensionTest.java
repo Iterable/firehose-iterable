@@ -349,6 +349,24 @@ public class IterableExtensionTest {
         assertEquals("1dce4e505b11111ca1111d6fdd774fbd", argument.getValue().messageId);
     }
 
+    /**
+     * Verify that Android push message receipt event is not handled when campaignId is missing
+     */
+    @Test
+    public void testProcessAndroidPushMessageReceiptWithoutCampaignId() throws IOException {
+        testIterableExtension.iterableService = iterableServiceMock;
+        EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
+        eventProcessingRequest.setUserIdentities(userIdentitiesWithEmailAndCustomerId);
+        eventProcessingRequest.setRuntimeEnvironment(new AndroidRuntimeEnvironment());
+        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        event.setRequest(eventProcessingRequest);
+        event.setPayload("{\"google.sent_time\":1507657706679,\"body\":\"example\",\"from\":\"674988899928\",\"itbl\":\"{\\\"isGhostPush\\\":false,\\\"messageId\\\":\\\"1dce4e505b11111ca1111d6fdd774fbd\\\",\\\"templateId\\\":54321}\",\"google.message_id\":\"0:1507657706689231%62399b94f9fd7ecd\"}");
+        event.setTimestamp(System.currentTimeMillis());
+        
+        testIterableExtension.processPushMessageReceiptEvent(event);
+        Mockito.verify(iterableServiceMock, never()).trackPushOpen(Mockito.any(), Mockito.any());
+    }
+
     @Test
     public void testProcessiOSPushMessageReceiptEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
@@ -393,6 +411,24 @@ public class IterableExtensionTest {
         assertEquals(12345, argument.getValue().campaignId + 0);
         assertEquals(54321, argument.getValue().templateId + 0);
         assertEquals("1dce4e505b11111ca1111d6fdd774fbd", argument.getValue().messageId);
+    }
+
+    /**
+     * Verify that iOS push message receipt event is not handled when campaignId is missing
+     */
+    @Test
+    public void testProcessiOSPushMessageReceiptWithoutCampaignId() throws IOException {
+        testIterableExtension.iterableService = iterableServiceMock;
+        EventProcessingRequest eventProcessingRequest = createEventProcessingRequest();
+        eventProcessingRequest.setUserIdentities(userIdentitiesWithEmailAndCustomerId);
+        eventProcessingRequest.setRuntimeEnvironment(new IosRuntimeEnvironment());
+        PushMessageReceiptEvent event = new PushMessageReceiptEvent();
+        event.setRequest(eventProcessingRequest);
+        event.setPayload("{\"aps\":{\"content-available\":1 }, \"data\":{\"route\":\"example\", \"tag\":\"example\", \"body\":\"example\"}, \"route\":\"example\", \"type\":\"marketing\", \"itbl\":{\"messageId\":\"1dce4e505b11111ca1111d6fdd774fbd\", \"templateId\":54321, \"isGhostPush\":false } }");
+        event.setTimestamp(System.currentTimeMillis());
+
+        testIterableExtension.processPushMessageReceiptEvent(event);
+        Mockito.verify(iterableServiceMock, never()).trackPushOpen(Mockito.any(), Mockito.any());
     }
 
     /**
@@ -937,4 +973,14 @@ public class IterableExtensionTest {
 
         return request;
     }
+
+    private Call createCallMockWithSuccessResponse() throws IOException {
+        Call callMock = Mockito.mock(Call.class);
+        IterableApiResponse apiResponse = new IterableApiResponse();
+        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
+        Response<IterableApiResponse> response = Response.success(apiResponse);
+        Mockito.when(callMock.execute()).thenReturn(response);
+        return callMock;
+    }
 }
+
