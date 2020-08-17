@@ -14,4 +14,4 @@
 
 - [ ] Unit tested (including negative cases)
 - [ ] Integration tested
-- [ ] Manually tested in with the staging `test` tile
+- [ ] Manually tested with the staging `test` tile
