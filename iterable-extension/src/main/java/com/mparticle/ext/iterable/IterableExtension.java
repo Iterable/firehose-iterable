@@ -77,15 +77,18 @@ public class IterableExtension extends MessageProcessor {
                     Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
                     if (payload.containsKey("itbl")) {
                         //Android and iOS have differently encoded payload formats. See the tests for examples.
+                        Map<String, Object> iterableMap;
                         if (processingRequest.getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
-                            Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
-                            request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
-                            request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
-                            request.messageId = (String) iterableMap.get("messageId");
+                            iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
                         } else {
-                            request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
-                            request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
-                            request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
+                            iterableMap = (Map) payload.get("itbl");
+                        }
+                        request.campaignId = convertItblPayloadFieldToInt(iterableMap.get("campaignId"));
+                        request.templateId = convertItblPayloadFieldToInt(iterableMap.get("templateId"));
+                        request.messageId = (String) iterableMap.get("messageId");
+                        if (request.campaignId == 0 || request.templateId == 0) {
+                            // Proof sends don't have a campaignId
+                            return;
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
@@ -569,6 +572,14 @@ public class IterableExtension extends MessageProcessor {
         return converted;
     }
 
+    /**
+     * Map mParticle `PushMessageReceiptEvent` to Iterable `trackPushOpen` request.
+     *
+     * mParticle push_message event https://docs.mparticle.com/developers/server/json-reference#push_message
+     * Iterable trackPushOpen request: https://api.iterable.com/api/docs#events_trackPushOpen
+     *
+     * @param event the mParticle event
+     */
     @Override
     public void processPushMessageReceiptEvent(PushMessageReceiptEvent event) throws IOException {
         // Skip processing if the SDK is present - it tracks opens automatically
@@ -587,20 +598,31 @@ public class IterableExtension extends MessageProcessor {
             Map<String, Object> payload = mapper.readValue(event.getPayload(), Map.class);
             if (payload.containsKey("itbl")) {
                 //Android and iOS have differently encoded payload formats. See the tests for examples.
+                Map<String, Object> iterableMap;
                 if (event.getRequest().getRuntimeEnvironment() instanceof AndroidRuntimeEnvironment) {
-                    Map<String, Object> iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(iterableMap.get("templateId")));
-                    request.messageId = (String) iterableMap.get("messageId");
+                    iterableMap = mapper.readValue((String) payload.get("itbl"), Map.class);
                 } else {
-                    request.campaignId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("campaignId")));
-                    request.templateId = Integer.parseInt(mapper.writeValueAsString(((Map) payload.get("itbl")).get("templateId")));
-                    request.messageId = (String) ((Map) payload.get("itbl")).get("messageId");
+                    iterableMap = (Map) payload.get("itbl");
+                }
+                request.campaignId = convertItblPayloadFieldToInt(iterableMap.get("campaignId"));
+                request.templateId = convertItblPayloadFieldToInt(iterableMap.get("templateId"));
+                request.messageId = (String) iterableMap.get("messageId");
+                if (request.campaignId == 0 || request.templateId == 0) {
+                    // Proof sends don't have a campaignId
+                    return;
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
                 handleIterableResponse(response, event.getId());
             }
+        }
+    }
+
+    public static Integer convertItblPayloadFieldToInt(Object itblField) {
+        if (itblField instanceof Integer) {
+            return (Integer) itblField;
+        } else {
+            return 0;
         }
     }
 
