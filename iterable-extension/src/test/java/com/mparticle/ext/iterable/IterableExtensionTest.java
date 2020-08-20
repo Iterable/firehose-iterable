@@ -955,10 +955,38 @@ public class IterableExtensionTest {
     }
 
     @Test(expected = RetriableError.class)
+    public void testHandleIterableResponseWith502() throws RetriableError {
+        Response itbl502 = Response.error(502, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableResponse(itbl502, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableResponseWith504() throws RetriableError {
+        Response itbl504 = Response.error(504, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableResponse(itbl504, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
     public void testHandleIterableListResponseWith429() throws RetriableError {
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
         IterableExtension.handleIterableListResponse(itbl492, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableListResponseWith502() throws RetriableError {
+        Response itbl502 = Response.error(502, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableListResponse(itbl502, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableListResponseWith504() throws RetriableError {
+        Response itbl504 = Response.error(504, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableListResponse(itbl504, UUID.randomUUID());
     }
 
     private EventProcessingRequest createEventProcessingRequest() {

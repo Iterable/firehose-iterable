@@ -30,6 +30,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
+    static Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
     IterableService iterableService = IterableService.newInstance();
 
     @Override
@@ -746,7 +747,7 @@ public class IterableExtension extends MessageProcessor {
         Boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
             IterableExtensionLogger.logApiError(response, eventId);
-            if (response.code() == 429) {
+            if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
         }
@@ -755,7 +756,7 @@ public class IterableExtension extends MessageProcessor {
     static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
             IterableExtensionLogger.logApiError(response, audienceRequestId);
-            if (response.code() == 429) {
+            if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
         }
