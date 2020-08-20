@@ -11,6 +11,7 @@ import okhttp3.ResponseBody;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -272,13 +273,9 @@ public class IterableExtensionTest {
     public void testProcessCustomEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
-        Call callMock = Mockito.mock(Call.class);
+        Call callMock = createCallMockWithSuccessResponse();
         Mockito.when(extension.iterableService.track(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
-        IterableApiResponse apiResponse = new IterableApiResponse();
-        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
-        Response<IterableApiResponse> response = Response.success(apiResponse);
-        Mockito.when(callMock.execute()).thenReturn(response);
 
         long timeStamp = System.currentTimeMillis();
         CustomEvent event = new CustomEvent();
@@ -945,6 +942,24 @@ public class IterableExtensionTest {
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         assertEquals("An error response should log", expectedLogMessage, outContent.toString());
         System.setOut(System.out);
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testRetryIterableTimeout() throws IOException {
+        testIterableExtension.iterableService = iterableServiceMock;
+        Mockito.when(iterableServiceMock.track(Mockito.any(), Mockito.any())).thenThrow(java.net.SocketTimeoutException.class);
+        EventProcessingRequest request = createEventProcessingRequest();
+        List<UserIdentity> userIdentities = new LinkedList<>();
+        userIdentities.add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, "mptest@mparticle.com"));
+        userIdentities.add(new UserIdentity(UserIdentity.Type.CUSTOMER, Identity.Encoding.RAW, "123456"));
+        request.setUserIdentities(userIdentities);
+        CustomEvent event = new CustomEvent();
+        long timeStamp = System.currentTimeMillis();
+        event.setTimestamp(timeStamp);
+        event.setName("My Event Name");
+        event.setRequest(request);
+
+        testIterableExtension.processCustomEvent(event);
     }
 
     @Test(expected = RetriableError.class)

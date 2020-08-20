@@ -89,8 +89,13 @@ public class IterableExtension extends MessageProcessor {
                             return;
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
-                        Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
-                        handleIterableResponse(response, event.getId());
+                        try {
+                            Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
+                            handleIterableResponse(response, event.getId());
+                        } catch (java.net.SocketTimeoutException e) {
+                            // TODO - add logging
+                            throw new RetriableError();
+                        }
                     }
                 }
             }
@@ -174,8 +179,13 @@ public class IterableExtension extends MessageProcessor {
             return;
         }
 
-        Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
-        handleIterableResponse(response, event.getId());
+        try {
+            Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
+            handleIterableResponse(response, event.getId());
+        } catch (java.net.SocketTimeoutException e) {
+            // TODO - add logging
+            throw new RetriableError();
+        }
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -206,8 +216,13 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = placeholderEmail;
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
-                Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                handleIterableResponse(response, changeEvent.getId());
+                try {
+                    Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
+                    handleIterableResponse(response, changeEvent.getId());
+                } catch (java.net.SocketTimeoutException e) {
+                    // TODO - add logging
+                    throw new RetriableError();
+                }
             }
 
             //convert from old to new email
@@ -216,8 +231,13 @@ public class IterableExtension extends MessageProcessor {
                 //these are safe due to the filters above
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
-                Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                handleIterableResponse(response, changeEvent.getId());
+                try {
+                    Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
+                    handleIterableResponse(response, changeEvent.getId());
+                } catch (java.net.SocketTimeoutException e) {
+                    // TODO - add logging
+                    throw new RetriableError();
+                }
             }
         }
 
@@ -226,8 +246,13 @@ public class IterableExtension extends MessageProcessor {
             addUserIdentitiesToRequest(userUpdateRequest, request);
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
-                Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
-                handleIterableResponse(response, request.getId());
+                try {
+                    Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
+                    handleIterableResponse(response, request.getId());
+                } catch (java.net.SocketTimeoutException e) {
+                    // TODO - add logging
+                    throw new RetriableError();
+                }
             }
         }
     }
@@ -307,8 +332,13 @@ public class IterableExtension extends MessageProcessor {
                         .collect(Collectors.toList());
             }
 
-            Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
-            handleIterableResponse(response, event.getId());
+            try {
+                Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
+                handleIterableResponse(response, event.getId());
+            } catch (java.net.SocketTimeoutException e) {
+                // TODO - add logging
+                throw new RetriableError();
+            }
         }
     }
 
@@ -460,8 +490,13 @@ public class IterableExtension extends MessageProcessor {
         if (updateRequest == null) {
             return false;
         }
-        Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
-        handleIterableResponse(response, event.getId());
+        try {
+            Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
+            handleIterableResponse(response, event.getId());
+        } catch (java.net.SocketTimeoutException e) {
+            // TODO - add logging
+            throw new RetriableError();
+        }
         return true;
 
     }
@@ -528,8 +563,13 @@ public class IterableExtension extends MessageProcessor {
         request.dataFields = attemptTypeConversion(event.getAttributes());
         addUserIdentitiesToRequest(request, event.getRequest());
 
-        Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
-        handleIterableResponse(response, event.getId());
+        try {
+            Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
+            handleIterableResponse(response, event.getId());
+        } catch (java.net.SocketTimeoutException e) {
+            // TODO - add logging
+            throw new RetriableError();
+        }
     }
 
     /**
@@ -610,8 +650,13 @@ public class IterableExtension extends MessageProcessor {
                     return;
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
-                Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                handleIterableResponse(response, event.getId());
+                try {
+                    Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
+                    handleIterableResponse(response, event.getId());
+                } catch (java.net.SocketTimeoutException e) {
+                    // TODO - add logging
+                    throw new RetriableError();
+                }
             }
         }
     }
@@ -685,12 +730,16 @@ public class IterableExtension extends MessageProcessor {
             try {
                 Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
                 handleIterableListResponse(response, request.getId());
-            } catch (Exception e) {
-                Boolean isApiKeyNull = getApiKey(request) == null;
-                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
-                        "ApiKey null: " + isApiKeyNull);
-                e.printStackTrace();
+            } catch (java.net.SocketTimeoutException e) {
+                // TODO - add logging
+                throw new RetriableError();
             }
+            // TODO
+//            } catch (Exception e) {
+//                Boolean isApiKeyNull = getApiKey(request) == null;
+//                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
+//                        "ApiKey null: " + isApiKeyNull);
+//                e.printStackTrace();
 
         }
 
@@ -701,12 +750,16 @@ public class IterableExtension extends MessageProcessor {
             try {
                 Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
                 handleIterableListResponse(response, request.getId());
-            } catch (Exception e) {
-                Boolean isApiKeyNull = getApiKey(request) == null;
-                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
-                        "ApiKey null: " + isApiKeyNull);
-                e.printStackTrace();
-        }
+            } catch (java.net.SocketTimeoutException e) {
+                // TODO - add logging
+                throw new RetriableError();
+            }
+            // TODO
+//            } catch (Exception e) {
+//                Boolean isApiKeyNull = getApiKey(request) == null;
+//                IterableExtensionLogger.logError("A " + e.getClass() + "exception occurred." +
+//                        "ApiKey null: " + isApiKeyNull);
+//                e.printStackTrace();
     }
         return new AudienceMembershipChangeResponse();
     }
