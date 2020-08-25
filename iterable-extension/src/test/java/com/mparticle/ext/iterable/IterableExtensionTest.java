@@ -98,7 +98,7 @@ public class IterableExtensionTest {
                 MediaType.parse("application/json; charset=utf-8"), "{code:\"InvalidEmailAddressError\"}"));
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessEventProcessingRequest() {
         IterableExtension extension = new IterableExtension();
         EventProcessingRequest request = createEventProcessingRequest();
@@ -132,7 +132,7 @@ public class IterableExtensionTest {
         assertEquals("Events should have been in order",4, request.getEvents().get(3).getTimestamp());
     }
 
-    @org.junit.Test
+    @Test
     public void testUpdateUser() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -202,7 +202,7 @@ public class IterableExtensionTest {
                 args.getValue().dataFields.get(MPARTICLE_RESERVED_PHONE_ATTR));
     }
 
-    @org.junit.Test
+    @Test
     public void testUserAttributeTypeConversion() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -259,7 +259,7 @@ public class IterableExtensionTest {
         assertEquals("1.5", actualRequests.get(2).dataFields.get("test_float"));
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessUserAttributeChangeEvent() throws Exception {
         //just verify that we're not processing anything - it's all done in processEventProcessingRequest
         IterableExtension extension = new IterableExtension();
@@ -268,7 +268,7 @@ public class IterableExtensionTest {
         Mockito.verify(extension.iterableService, never()).userUpdate(Mockito.any(), Mockito.any());
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessCustomEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -464,7 +464,7 @@ public class IterableExtensionTest {
      * <p>
      * It then verifies that subscribe/unsubcribe are called the correct amount and with the right list ids
      */
-    @org.junit.Test
+    @Test
     public void testProcessAudienceMembershipChangeRequest() throws Exception {
         IterableExtension extension = new IterableExtension();
         IterableService service = Mockito.mock(IterableService.class);
@@ -687,7 +687,7 @@ public class IterableExtensionTest {
         assertEquals(3, expectedUserUnsubscribeCount);
     }
 
-    @org.junit.Test
+    @Test
     public void testConvertToCommerceItem() throws Exception {
         Product product = new Product();
         product.setId("some id");
@@ -713,7 +713,7 @@ public class IterableExtensionTest {
 
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessProductActionEvent() throws Exception {
         ProductActionEvent event = new ProductActionEvent();
         IterableExtension extension = new IterableExtension();
@@ -867,7 +867,7 @@ public class IterableExtensionTest {
         assertEquals("foo-aid@placeholder.email", email);
     }
 
-    @org.junit.Test
+    @Test
     public void testUpdateSubscriptionsEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
