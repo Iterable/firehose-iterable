@@ -2,7 +2,7 @@ package com.mparticle.iterable;
 
 import java.util.Map;
 
-public class IterableApiResponse {
+public class IterableApiResponse extends IterableResponse {
 
     public static String SUCCESS_MESSAGE = "Success";
 

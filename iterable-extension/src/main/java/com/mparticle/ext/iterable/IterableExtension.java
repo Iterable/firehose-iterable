@@ -10,6 +10,7 @@ import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeRespon
 import com.mparticle.sdk.model.audienceprocessing.UserProfile;
 import com.mparticle.sdk.model.eventprocessing.*;
 import com.mparticle.sdk.model.registration.*;
+import retrofit2.Call;
 import retrofit2.Response;
 
 import java.io.IOException;
@@ -89,13 +90,8 @@ public class IterableExtension extends MessageProcessor {
                             return;
                         }
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
-                        try {
-                            Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(processingRequest), request).execute();
-                            handleIterableResponse(response, event.getId());
-                        } catch (java.net.SocketTimeoutException e) {
-                            IterableExtensionLogger.logApiTimeout("/api/events/trackPushOpen", event.getId());
-                            throw new RetriableError();
-                        }
+                        Call preparedCall = iterableService.trackPushOpen(getApiKey(processingRequest), request);
+                        makeIterableRequest(preparedCall, event.getId());
                     }
                 }
             }
@@ -179,13 +175,8 @@ public class IterableExtension extends MessageProcessor {
             return;
         }
 
-        try {
-            Response<IterableApiResponse> response = iterableService.registerToken(getApiKey(event), request).execute();
-            handleIterableResponse(response, event.getId());
-        } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logApiTimeout("/api/users/registerDeviceToken", event.getId());
-            throw new RetriableError();
-        }
+        Call preparedCall = iterableService.registerToken(getApiKey(event), request);
+        makeIterableRequest(preparedCall, event.getId());
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -216,13 +207,8 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.currentEmail = placeholderEmail;
                 //this is safe due to the filters above
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
-                try {
-                    Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                    handleIterableResponse(response, changeEvent.getId());
-                } catch (java.net.SocketTimeoutException e) {
-                    IterableExtensionLogger.logApiTimeout("/api/users/updateEmail", changeEvent.getId());
-                    throw new RetriableError();
-                }
+                Call preparedCall = iterableService.updateEmail(getApiKey(request), updateEmailRequest);
+                makeIterableRequest(preparedCall, changeEvent.getId());
             }
 
             //convert from old to new email
@@ -231,13 +217,8 @@ public class IterableExtension extends MessageProcessor {
                 //these are safe due to the filters above
                 updateEmailRequest.currentEmail = changeEvent.getRemoved().get(0).getValue();
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
-                try {
-                    Response<IterableApiResponse> response = iterableService.updateEmail(getApiKey(request), updateEmailRequest).execute();
-                    handleIterableResponse(response, changeEvent.getId());
-                } catch (java.net.SocketTimeoutException e) {
-                    IterableExtensionLogger.logApiTimeout("/api/users/updateEmail", changeEvent.getId());
-                    throw new RetriableError();
-                }
+                Call preparedCall = iterableService.updateEmail(getApiKey(request), updateEmailRequest);
+                makeIterableRequest(preparedCall, changeEvent.getId());
             }
         }
 
@@ -246,13 +227,8 @@ public class IterableExtension extends MessageProcessor {
             addUserIdentitiesToRequest(userUpdateRequest, request);
             if (!isEmpty(userUpdateRequest.email) || !isEmpty(userUpdateRequest.userId)) {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
-                try {
-                    Response<IterableApiResponse> response = iterableService.userUpdate(getApiKey(request), userUpdateRequest).execute();
-                    handleIterableResponse(response, request.getId());
-                } catch (java.net.SocketTimeoutException e) {
-                    IterableExtensionLogger.logApiTimeout("/api/users/update", request.getId());
-                    throw new RetriableError();
-                }
+                Call preparedCall = iterableService.userUpdate(getApiKey(request), userUpdateRequest);
+                makeIterableRequest(preparedCall, request.getId());
             }
         }
     }
@@ -332,13 +308,8 @@ public class IterableExtension extends MessageProcessor {
                         .collect(Collectors.toList());
             }
 
-            try {
-                Response<IterableApiResponse> response = iterableService.trackPurchase(getApiKey(event), purchaseRequest).execute();
-                handleIterableResponse(response, event.getId());
-            } catch (java.net.SocketTimeoutException e) {
-                IterableExtensionLogger.logApiTimeout("/api/commerce/trackPurchase", event.getId());
-                throw new RetriableError();
-            }
+            Call preparedCall = iterableService.trackPurchase(getApiKey(event), purchaseRequest);
+            makeIterableRequest(preparedCall, event.getId());
         }
     }
 
@@ -490,15 +461,9 @@ public class IterableExtension extends MessageProcessor {
         if (updateRequest == null) {
             return false;
         }
-        try {
-            Response<IterableApiResponse> response = iterableService.updateSubscriptions(getApiKey(event), updateRequest).execute();
-            handleIterableResponse(response, event.getId());
-        } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logApiTimeout("/api/users/updateSubscriptions", event.getId());
-            throw new RetriableError();
-        }
+        Call preparedCall = iterableService.updateSubscriptions(getApiKey(event), updateRequest);
+        makeIterableRequest(preparedCall, event.getId());
         return true;
-
     }
 
     static UpdateSubscriptionsRequest generateSubscriptionRequest(CustomEvent event) {
@@ -563,13 +528,8 @@ public class IterableExtension extends MessageProcessor {
         request.dataFields = attemptTypeConversion(event.getAttributes());
         addUserIdentitiesToRequest(request, event.getRequest());
 
-        try {
-            Response<IterableApiResponse> response = iterableService.track(getApiKey(event), request).execute();
-            handleIterableResponse(response, event.getId());
-        } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logApiTimeout("/api/events/track", event.getId());
-            throw new RetriableError();
-        }
+        Call preparedCall = iterableService.track(getApiKey(event), request);
+        makeIterableRequest(preparedCall, event.getId());
     }
 
     /**
@@ -650,13 +610,8 @@ public class IterableExtension extends MessageProcessor {
                     return;
                 }
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
-                try {
-                    Response<IterableApiResponse> response = iterableService.trackPushOpen(getApiKey(event), request).execute();
-                    handleIterableResponse(response, event.getId());
-                } catch (java.net.SocketTimeoutException e) {
-                    IterableExtensionLogger.logApiTimeout("/api/events/trackPushOpen", event.getId());
-                    throw new RetriableError();
-                }
+                Call preparedCall = iterableService.trackPushOpen(getApiKey(event), request);
+                makeIterableRequest(preparedCall, event.getId());
             }
         }
     }
@@ -727,26 +682,16 @@ public class IterableExtension extends MessageProcessor {
             SubscribeRequest subscribeRequest = new SubscribeRequest();
             subscribeRequest.listId = entry.getKey();
             subscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listSubscribe(getApiKey(request), subscribeRequest).execute();
-                handleIterableListResponse(response, request.getId());
-            } catch (java.net.SocketTimeoutException e) {
-                IterableExtensionLogger.logApiTimeout("/api/lists/subscribe", request.getId());
-                throw new RetriableError();
-            }
+            Call preparedCall = iterableService.listSubscribe(getApiKey(request), subscribeRequest);
+            makeIterableRequest(preparedCall, request.getId());
         }
 
         for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
             UnsubscribeRequest unsubscribeRequest = new UnsubscribeRequest();
             unsubscribeRequest.listId = entry.getKey();
             unsubscribeRequest.subscribers = entry.getValue();
-            try {
-                Response<ListResponse> response = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest).execute();
-                handleIterableListResponse(response, request.getId());
-            } catch (java.net.SocketTimeoutException e) {
-                IterableExtensionLogger.logApiTimeout("/api/lists/unsubscribe", request.getId());
-                throw new RetriableError();
-            }
+            Call preparedCall = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest);
+            makeIterableRequest(preparedCall, request.getId());
     }
         return new AudienceMembershipChangeResponse();
     }
@@ -804,6 +749,20 @@ public class IterableExtension extends MessageProcessor {
         if (hasFailures) {
             IterableExtensionLogger.logError(
                     "List subscribe or unsubscribe request failed count: " + response.body().failCount);
+        }
+    }
+
+    static void makeIterableRequest(Call call, UUID requestId) throws IOException {
+        try {
+            Response<? extends IterableResponse> response = call.execute();
+            if (response.body() instanceof IterableApiResponse) {
+                handleIterableResponse((Response<IterableApiResponse>) response, requestId);
+            } else if (response.body() instanceof ListResponse) {
+                handleIterableListResponse((Response<ListResponse>) response, requestId);
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            IterableExtensionLogger.logApiTimeout(call.request().url().encodedPath(), requestId);
+            throw new RetriableError();
         }
     }
 }
