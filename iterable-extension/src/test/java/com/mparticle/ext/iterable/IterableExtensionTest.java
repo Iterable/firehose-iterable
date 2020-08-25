@@ -1006,7 +1006,7 @@ public class IterableExtensionTest {
 
     @Test(expected = RetriableError.class)
     public void testMakeIterableRequestWithTimeout() throws IOException {
-        Call call = createCallMockWithSuccessResponse();
+        Call call = Mockito.mock(Call.class);
         HttpUrl url = new HttpUrl.Builder()
                 .scheme("https")
                 .host("api.iterable.com")
@@ -1022,28 +1022,6 @@ public class IterableExtensionTest {
         makeIterableRequest(call, UUID.randomUUID());
         // When a timeout occurs, the logger writes a message with the encoded path
         Mockito.verify(call.request().url().encodedPath());
-    }
-
-    @Test(expected = RetriableError.class)
-    public void testMakeIterableRequestWithRetriableHttpError() throws IOException {
-        Call call = createCallMockWithSuccessResponse();
-        Response retriableErrorResponse = Response.error(429, ResponseBody.create(
-                MediaType.parse("application/json; charset=utf-8"), "{}"));
-        IterableExtension.handleIterableListResponse(retriableErrorResponse, UUID.randomUUID());
-        Mockito.when(call.execute()).thenReturn(retriableErrorResponse);
-
-        makeIterableRequest(call, UUID.randomUUID());
-    }
-
-    @Test
-    public void testMakeIterableRequestWithNonRetriableHttpError() throws IOException {
-        Call call = createCallMockWithSuccessResponse();
-        Response retriableErrorResponse = Response.error(400, ResponseBody.create(
-                MediaType.parse("application/json; charset=utf-8"), "{}"));
-        IterableExtension.handleIterableResponse(retriableErrorResponse, UUID.randomUUID());
-        Mockito.when(call.execute()).thenReturn(retriableErrorResponse);
-
-        makeIterableRequest(call, UUID.randomUUID());
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
