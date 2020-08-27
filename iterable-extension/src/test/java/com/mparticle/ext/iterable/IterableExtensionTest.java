@@ -1020,8 +1020,6 @@ public class IterableExtensionTest {
         Mockito.when(call.execute()).thenThrow(java.net.SocketTimeoutException.class);
 
         makeIterableRequest(call, UUID.randomUUID());
-        // When a timeout occurs, the logger writes a message with the encoded path
-        Mockito.verify(call.request().url().encodedPath());
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
