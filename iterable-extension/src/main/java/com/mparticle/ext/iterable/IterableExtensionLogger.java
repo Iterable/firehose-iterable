@@ -11,6 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * A utility class for logging state while processing mParticle batches. All
+ * static methods write a JSON object to Standard Output where it can be queried
+ * in Cloudwatch.
+ */
 public class IterableExtensionLogger {
 
   private static final Gson gson = new GsonBuilder().create();
@@ -32,6 +37,17 @@ public class IterableExtensionLogger {
     logMessage.put("httpStatus", httpStatus);
     logMessage.put("iterableApiCode", iterableApiCode);
     logMessage.put("mParticleEventId", requestId);
+    String messageJson = gson.toJson(logMessage);
+    System.out.println(messageJson);
+  }
+
+  static void logApiTimeout(String url, UUID mparticleEventId) {
+    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
+    Map<String, String> logMessage = new HashMap<>();
+    logMessage.put("errorType", "Retriable");
+    logMessage.put("message", "A timeout occurred while making request to Iterable");
+    logMessage.put("url", url);
+    logMessage.put("mparticleEventId", eventIdString);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }

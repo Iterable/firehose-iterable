@@ -6,11 +6,11 @@ import com.mparticle.sdk.model.audienceprocessing.AudienceMembershipChangeReques
 import com.mparticle.sdk.model.audienceprocessing.UserProfile;
 import com.mparticle.sdk.model.eventprocessing.*;
 import com.mparticle.sdk.model.registration.Account;
-import okhttp3.MediaType;
-import okhttp3.ResponseBody;
+import okhttp3.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -98,7 +98,7 @@ public class IterableExtensionTest {
                 MediaType.parse("application/json; charset=utf-8"), "{code:\"InvalidEmailAddressError\"}"));
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessEventProcessingRequest() {
         IterableExtension extension = new IterableExtension();
         EventProcessingRequest request = createEventProcessingRequest();
@@ -132,7 +132,7 @@ public class IterableExtensionTest {
         assertEquals("Events should have been in order",4, request.getEvents().get(3).getTimestamp());
     }
 
-    @org.junit.Test
+    @Test
     public void testUpdateUser() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -202,7 +202,7 @@ public class IterableExtensionTest {
                 args.getValue().dataFields.get(MPARTICLE_RESERVED_PHONE_ATTR));
     }
 
-    @org.junit.Test
+    @Test
     public void testUserAttributeTypeConversion() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -259,7 +259,7 @@ public class IterableExtensionTest {
         assertEquals("1.5", actualRequests.get(2).dataFields.get("test_float"));
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessUserAttributeChangeEvent() throws Exception {
         //just verify that we're not processing anything - it's all done in processEventProcessingRequest
         IterableExtension extension = new IterableExtension();
@@ -268,17 +268,13 @@ public class IterableExtensionTest {
         Mockito.verify(extension.iterableService, never()).userUpdate(Mockito.any(), Mockito.any());
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessCustomEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
-        Call callMock = Mockito.mock(Call.class);
+        Call callMock = createCallMockWithSuccessResponse();
         Mockito.when(extension.iterableService.track(Mockito.any(), Mockito.any()))
                 .thenReturn(callMock);
-        IterableApiResponse apiResponse = new IterableApiResponse();
-        apiResponse.code = IterableApiResponse.SUCCESS_MESSAGE;
-        Response<IterableApiResponse> response = Response.success(apiResponse);
-        Mockito.when(callMock.execute()).thenReturn(response);
 
         long timeStamp = System.currentTimeMillis();
         CustomEvent event = new CustomEvent();
@@ -468,7 +464,7 @@ public class IterableExtensionTest {
      * <p>
      * It then verifies that subscribe/unsubcribe are called the correct amount and with the right list ids
      */
-    @org.junit.Test
+    @Test
     public void testProcessAudienceMembershipChangeRequest() throws Exception {
         IterableExtension extension = new IterableExtension();
         IterableService service = Mockito.mock(IterableService.class);
@@ -691,7 +687,7 @@ public class IterableExtensionTest {
         assertEquals(3, expectedUserUnsubscribeCount);
     }
 
-    @org.junit.Test
+    @Test
     public void testConvertToCommerceItem() throws Exception {
         Product product = new Product();
         product.setId("some id");
@@ -717,7 +713,7 @@ public class IterableExtensionTest {
 
     }
 
-    @org.junit.Test
+    @Test
     public void testProcessProductActionEvent() throws Exception {
         ProductActionEvent event = new ProductActionEvent();
         IterableExtension extension = new IterableExtension();
@@ -871,7 +867,7 @@ public class IterableExtensionTest {
         assertEquals("foo-aid@placeholder.email", email);
     }
 
-    @org.junit.Test
+    @Test
     public void testUpdateSubscriptionsEvent() throws Exception {
         IterableExtension extension = new IterableExtension();
         extension.iterableService = Mockito.mock(IterableService.class);
@@ -955,10 +951,75 @@ public class IterableExtensionTest {
     }
 
     @Test(expected = RetriableError.class)
+    public void testHandleIterableResponseWith502() throws RetriableError {
+        Response itbl502 = Response.error(502, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableResponse(itbl502, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableResponseWith504() throws RetriableError {
+        Response itbl504 = Response.error(504, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableResponse(itbl504, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
     public void testHandleIterableListResponseWith429() throws RetriableError {
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
         IterableExtension.handleIterableListResponse(itbl492, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableListResponseWith502() throws RetriableError {
+        Response itbl502 = Response.error(502, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableListResponse(itbl502, UUID.randomUUID());
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testHandleIterableListResponseWith504() throws RetriableError {
+        Response itbl504 = Response.error(504, ResponseBody.create(
+                MediaType.parse("application/json; charset=utf-8"), "{}"));
+        IterableExtension.handleIterableListResponse(itbl504, UUID.randomUUID());
+    }
+
+    @Test
+    public void testMakeIterableRequestWithSuccess() throws IOException {
+        Call call = createCallMockWithSuccessResponse();
+
+        makeIterableRequest(call, UUID.randomUUID());
+        Mockito.verify(call).execute();
+    }
+
+    @Test
+    public void testMakeIterableRequestWithListSuccess() throws IOException {
+        Call call = Mockito.mock(Call.class);
+        ListResponse listResponse = new ListResponse();
+        Response<ListResponse> response = Response.success(listResponse);
+        Mockito.when(call.execute()).thenReturn(response);
+
+        makeIterableRequest(call, UUID.randomUUID());
+        Mockito.verify(call).execute();
+    }
+
+    @Test(expected = RetriableError.class)
+    public void testMakeIterableRequestWithTimeout() throws IOException {
+        Call call = Mockito.mock(Call.class);
+        HttpUrl url = new HttpUrl.Builder()
+                .scheme("https")
+                .host("api.iterable.com")
+                .addEncodedPathSegment("/api/events/track")
+                .build();
+        Request request = new Request.Builder()
+                .method("POST", RequestBody.create(MediaType.parse("application/json; charset=utf-8"), "{}"))
+                .url(url)
+                .build();
+        Mockito.when(call.request()).thenReturn(request);
+        Mockito.when(call.execute()).thenThrow(java.net.SocketTimeoutException.class);
+
+        makeIterableRequest(call, UUID.randomUUID());
     }
 
     private EventProcessingRequest createEventProcessingRequest() {
