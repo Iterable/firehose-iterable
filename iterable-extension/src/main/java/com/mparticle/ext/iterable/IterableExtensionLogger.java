@@ -12,15 +12,22 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * A utility class for logging state while processing mParticle batches. All
- * static methods write a JSON object to Standard Output where it can be queried
- * in Cloudwatch.
+ * A utility class for writing logs to the Lambda log stream. All static methods
+ * write a JSON object to Standard Output where it can be queried in Cloudwatch.
+ * Every log message contains the "awsRequestId" in order to connect each log
+ * statements from a given invocation.
  */
 public class IterableExtensionLogger {
 
+  private static IterableExtensionLogger singleton = null;
   private static final Gson gson = new GsonBuilder().create();
+  private static String awsRequestId;
 
-  static void logApiError(Response<?> response, UUID id) {
+  public static void setAwsRequestId(String requestId) {
+    awsRequestId = requestId;
+  }
+
+  public static void logIterableApiError(Response<?> response, UUID id) {
     String iterableApiCode = null;
     try {
       IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
@@ -32,7 +39,9 @@ public class IterableExtensionLogger {
     String url = response.raw().request().url().encodedPath();
     String httpStatus = String.valueOf(response.code());
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("message", "Error sending request to Iterable");
+    logMessage.put("errorType", "RetriableError");
+    logMessage.put("awsRequestId", awsRequestId);
+    logMessage.put("message", "Received an error HTTP status from the Iterable API");
     logMessage.put("url", url);
     logMessage.put("httpStatus", httpStatus);
     logMessage.put("iterableApiCode", iterableApiCode);
@@ -41,20 +50,40 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  static void logApiTimeout(String url, UUID mparticleEventId) {
+  public static void logIterableApiTimeout(String url, UUID mparticleEventId) {
     String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("errorType", "Retriable");
-    logMessage.put("message", "A timeout occurred while making request to Iterable");
+    logMessage.put("errorType", "RetriableError");
+    logMessage.put("awsRequestId", awsRequestId);
+    logMessage.put("message", "Encountered a timeout while connecting to the Iterable API");
     logMessage.put("url", url);
     logMessage.put("mparticleEventId", eventIdString);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
-  public static void logError(String message) {
+  public static void logUnexpectedError(Exception e) {
+    // TODO - print stacktrace
+    Map<String, String> logMessage = new HashMap<>();
+    logMessage.put("errorType", "UnexpectedError");
+    logMessage.put("awsRequestId", awsRequestId);
+    String messageJson = gson.toJson(logMessage);
+    System.out.println(messageJson);
+  }
+
+  public static void logMessage(String message) {
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("message", message);
+    logMessage.put("awsRequestId", awsRequestId);
+    String messageJson = gson.toJson(logMessage);
+    System.out.println(messageJson);
+  }
+
+  public static void logError(String message) {
+      // TODO - try to remove these calls and use a more specific logger
+    Map<String, String> logMessage = new HashMap<>();
+    logMessage.put("message", message);
+    logMessage.put("awsRequestId", awsRequestId);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }

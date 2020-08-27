@@ -16,21 +16,26 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
   static MessageSerializer serializer = new MessageSerializer();
   static IterableExtension processor = new IterableExtension();
   static final ObjectMapper mapper = new ObjectMapper();
+  IterableExtensionLogger logger;
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
+    IterableExtensionLogger.setAwsRequestId(context.getAwsRequestId());
+    // TODO IterableExtensionLogger.setLogger(); ????
     try {
       String inputString = IOUtils.toString(input, "UTF-8");
       Message request = parseQueueTrigger(inputString);
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);
+    } catch (NonRetriableError e) {
+      IterableExtensionLogger.logMessage("Processing terminated by a NonRetriableError");
     } catch (RetriableError e) {
-      IterableExtensionLogger.logError("Processing terminated by a RetriableError");
+      IterableExtensionLogger.logMessage("Processing terminated by a RetriableError");
       throw e;
     } catch (Exception e) {
-      IterableExtensionLogger.logError("Processing terminated by An unexpected error");
-      e.printStackTrace(System.out);
+      IterableExtensionLogger.logMessage("Processing terminated by an UnexpectedError");
+      IterableExtensionLogger.logUnexpectedError(e);
     }
   }
 
