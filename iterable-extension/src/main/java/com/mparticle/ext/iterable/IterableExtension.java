@@ -742,7 +742,7 @@ public class IterableExtension extends MessageProcessor {
     static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableExtensionLogger.logApiError(response, eventId);
+            IterableExtensionLogger.logIterableApiError(response, eventId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
@@ -751,7 +751,7 @@ public class IterableExtension extends MessageProcessor {
 
     static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
-            IterableExtensionLogger.logApiError(response, audienceRequestId);
+            IterableExtensionLogger.logIterableApiError(response, audienceRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
@@ -767,7 +767,7 @@ public class IterableExtension extends MessageProcessor {
         try {
             return call.execute();
         } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logApiTimeout(call.request().url().encodedPath(), requestId);
+            IterableExtensionLogger.logIterableApiTimeout(call.request().url().encodedPath(), requestId);
             throw new RetriableError();
         }
     }
