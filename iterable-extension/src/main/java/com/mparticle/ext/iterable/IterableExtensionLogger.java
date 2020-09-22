@@ -78,13 +78,4 @@ public class IterableExtensionLogger {
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
-
-  public static void logError(String message) {
-      // TODO - try to remove these calls and use a more specific logger
-    Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("message", message);
-    logMessage.put("awsRequestId", awsRequestId);
-    String messageJson = gson.toJson(logMessage);
-    System.out.println(messageJson);
-  }
 }

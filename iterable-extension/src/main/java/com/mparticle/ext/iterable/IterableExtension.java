@@ -69,7 +69,7 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        IterableExtensionLogger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        IterableExtensionLogger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                         return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
@@ -159,7 +159,7 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            IterableExtensionLogger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            IterableExtensionLogger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.");
             return;
         }
 
@@ -172,7 +172,7 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            IterableExtensionLogger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            IterableExtensionLogger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
             return;
         }
 
@@ -421,7 +421,8 @@ public class IterableExtension extends MessageProcessor {
 
         if (isEmpty(id)) {
             // This error should stop processing for the entire batch.
-            throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
+            IterableExtensionLogger.logMessage("Unable to send user data to Iterable - no email and unable to construct placeholder.");
+            throw new NonRetriableError();
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
     }
@@ -597,7 +598,7 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                IterableExtensionLogger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                IterableExtensionLogger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
                 return;
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -758,7 +759,7 @@ public class IterableExtension extends MessageProcessor {
         }
         boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
-            IterableExtensionLogger.logError(
+            IterableExtensionLogger.logMessage(
                     "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }

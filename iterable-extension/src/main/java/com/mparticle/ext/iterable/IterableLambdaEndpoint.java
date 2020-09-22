@@ -16,7 +16,6 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
   static MessageSerializer serializer = new MessageSerializer();
   static IterableExtension processor = new IterableExtension();
   static final ObjectMapper mapper = new ObjectMapper();
-  IterableExtensionLogger logger;
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
@@ -29,12 +28,12 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);
     } catch (NonRetriableError e) {
-      IterableExtensionLogger.logMessage("Processing terminated by a NonRetriableError");
+      IterableExtensionLogger.logMessage("Invocation terminated by a NonRetriableError");
     } catch (RetriableError e) {
-      IterableExtensionLogger.logMessage("Processing terminated by a RetriableError");
+      IterableExtensionLogger.logMessage("Invocation terminated by a RetriableError");
       throw e;
     } catch (Exception e) {
-      IterableExtensionLogger.logMessage("Processing terminated by an UnexpectedError");
+      IterableExtensionLogger.logMessage("Invocation terminated by an UnexpectedError");
       IterableExtensionLogger.logUnexpectedError(e);
     }
   }
