@@ -7,6 +7,8 @@ import com.mparticle.iterable.IterableErrorHandler;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -21,13 +23,8 @@ public class IterableExtensionLogger {
 
   private static IterableExtensionLogger singleton = null;
   private static final Gson gson = new GsonBuilder().create();
-  private static String awsRequestId;
 
-  public static void setAwsRequestId(String requestId) {
-    awsRequestId = requestId;
-  }
-
-  public static void logIterableApiError(Response<?> response, UUID id) {
+  public static void logIterableApiError(Response<?> response, UUID mparticleEventId, String awsRequestId) {
     String iterableApiCode = null;
     try {
       IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
@@ -35,7 +32,7 @@ public class IterableExtensionLogger {
     } catch (IOException e) {
       iterableApiCode = "Unable to parse Iterable API code";
     }
-    String requestId = id != null ? id.toString() : "Unavailable";
+    String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     String url = response.raw().request().url().encodedPath();
     String httpStatus = String.valueOf(response.code());
     Map<String, String> logMessage = new HashMap<>();
@@ -50,7 +47,7 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  public static void logIterableApiTimeout(String url, UUID mparticleEventId) {
+  public static void logIterableApiTimeout(String url, UUID mparticleEventId, String awsRequestId) {
     String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "RetriableError");
@@ -62,16 +59,19 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  public static void logUnexpectedError(Exception e) {
+  public static void logUnexpectedError(Exception e, String awsRequestId) {
     // TODO - print stacktrace
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "UnexpectedError");
     logMessage.put("awsRequestId", awsRequestId);
+    StringWriter sw = new StringWriter();
+    e.printStackTrace(new PrintWriter(sw));
+    logMessage.put("message", sw.toString());
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
-  public static void logMessage(String message) {
+  public static void logMessage(String message, String awsRequestId) {
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("message", message);
     logMessage.put("awsRequestId", awsRequestId);

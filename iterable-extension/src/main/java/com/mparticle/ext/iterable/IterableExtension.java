@@ -32,6 +32,7 @@ public class IterableExtension extends MessageProcessor {
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
     static Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
+    static String awsRequestId = "";
     IterableService iterableService = IterableService.newInstance();
 
     @Override
@@ -69,7 +70,7 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        IterableExtensionLogger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        IterableExtensionLogger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.", awsRequestId);
                         return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
@@ -159,7 +160,7 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            IterableExtensionLogger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            IterableExtensionLogger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.", awsRequestId);
             return;
         }
 
@@ -172,7 +173,7 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            IterableExtensionLogger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            IterableExtensionLogger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.", awsRequestId);
             return;
         }
 
@@ -421,7 +422,7 @@ public class IterableExtension extends MessageProcessor {
 
         if (isEmpty(id)) {
             // This error should stop processing for the entire batch.
-            IterableExtensionLogger.logMessage("Unable to send user data to Iterable - no email and unable to construct placeholder.");
+            IterableExtensionLogger.logMessage("Unable to send user data to Iterable - no email and unable to construct placeholder.", awsRequestId);
             throw new NonRetriableError();
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
@@ -598,7 +599,7 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                IterableExtensionLogger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                IterableExtensionLogger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.", awsRequestId);
                 return;
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -743,7 +744,7 @@ public class IterableExtension extends MessageProcessor {
     static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableExtensionLogger.logIterableApiError(response, eventId);
+            IterableExtensionLogger.logIterableApiError(response, eventId, awsRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
@@ -752,7 +753,7 @@ public class IterableExtension extends MessageProcessor {
 
     static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
-            IterableExtensionLogger.logIterableApiError(response, audienceRequestId);
+            IterableExtensionLogger.logIterableApiError(response, audienceRequestId, awsRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
                 throw new RetriableError();
             }
@@ -760,7 +761,7 @@ public class IterableExtension extends MessageProcessor {
         boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
             IterableExtensionLogger.logMessage(
-                    "List subscribe or unsubscribe request failed count: " + response.body().failCount);
+                    "List subscribe or unsubscribe request failed count: " + response.body().failCount, awsRequestId);
         }
     }
 
@@ -768,7 +769,7 @@ public class IterableExtension extends MessageProcessor {
         try {
             return call.execute();
         } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logIterableApiTimeout(call.request().url().encodedPath(), requestId);
+            IterableExtensionLogger.logIterableApiTimeout(call.request().url().encodedPath(), requestId, awsRequestId);
             throw new RetriableError();
         }
     }
