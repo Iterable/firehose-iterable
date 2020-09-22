@@ -59,8 +59,15 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
+  public static void logNonRetriableError(String message, String awsRequestId) {
+    Map<String, String> logMessage = new HashMap<>();
+    logMessage.put("errorType", "NonRetriable");
+    logMessage.put("awsRequestId", awsRequestId);
+    String messageJson = gson.toJson(logMessage);
+    System.out.println(messageJson);
+  }
+
   public static void logUnexpectedError(Exception e, String awsRequestId) {
-    // TODO - print stacktrace
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "UnexpectedError");
     logMessage.put("awsRequestId", awsRequestId);
