@@ -933,7 +933,7 @@ public class IterableExtensionTest {
 
     @Test
     public void testHandleIterableResponseLogsError() throws RetriableError {
-        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Error sending request to Iterable\",\"url\":\"/\"}\n";
+        String expectedLogMessage = "{\"iterableApiCode\":\"InvalidEmailAddressError\",\"errorType\":\"RetriableError\",\"awsRequestId\":\"\",\"mParticleEventId\":\"d0567916-c2c7-11ea-b3de-0242ac130004\",\"httpStatus\":\"400\",\"message\":\"Received an error HTTP status from the Iterable API\",\"url\":\"/\"}\n";
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
 
