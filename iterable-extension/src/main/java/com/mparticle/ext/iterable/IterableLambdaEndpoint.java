@@ -26,10 +26,11 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);
     } catch (RetriableError e) {
-      throw new RetriableError("A retriable error occurred during processing");
+      IterableExtensionLogger.logError("Processing terminated by a RetriableError");
+      throw e;
     } catch (Exception e) {
-      IterableExtensionLogger.logError("An unexpected error occurred");
-      e.printStackTrace();
+      IterableExtensionLogger.logError("Processing terminated by An unexpected error");
+      e.printStackTrace(System.out);
     }
   }
 
