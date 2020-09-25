@@ -14,14 +14,13 @@ import java.io.OutputStream;
 public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   static MessageSerializer serializer = new MessageSerializer();
-  static IterableExtension processor = new IterableExtension();
   static final ObjectMapper mapper = new ObjectMapper();
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
-    String awsRequestId = context.getAwsRequestId();
-    processor.awsRequestId = awsRequestId;
+    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId());
+    IterableExtension processor = new IterableExtension(logger);
 
     try {
       String inputString = IOUtils.toString(input, "UTF-8");
@@ -29,13 +28,13 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);
     } catch (NonRetriableError e) {
-      IterableExtensionLogger.logMessage("Invocation terminated by a NonRetriableError", awsRequestId);
+      logger.logMessage("Invocation terminated by a NonRetriableError");
     } catch (RetriableError e) {
-      IterableExtensionLogger.logMessage("Invocation terminated by a RetriableError", awsRequestId);
+      logger.logMessage("Invocation terminated by a RetriableError");
       throw e;
     } catch (Exception e) {
-      IterableExtensionLogger.logMessage("Invocation terminated by an UnexpectedError", awsRequestId);
-      IterableExtensionLogger.logUnexpectedError(e, awsRequestId);
+      logger.logMessage("Invocation terminated by an UnexpectedError");
+      logger.logUnexpectedError(e);
     }
   }
 

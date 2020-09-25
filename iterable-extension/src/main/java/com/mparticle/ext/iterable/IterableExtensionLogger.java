@@ -21,10 +21,14 @@ import java.util.UUID;
  */
 public class IterableExtensionLogger {
 
-  private static IterableExtensionLogger singleton = null;
   private static final Gson gson = new GsonBuilder().create();
+  private String awsRequestId;
 
-  public static void logIterableApiError(Response<?> response, UUID mparticleEventId, String awsRequestId) {
+  public IterableExtensionLogger(String awsRequestId) {
+    this.awsRequestId = awsRequestId;
+  }
+
+  public void logIterableApiError(Response<?> response, UUID mparticleEventId, Boolean isRetriable) {
     String iterableApiCode = null;
     try {
       IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
@@ -32,42 +36,47 @@ public class IterableExtensionLogger {
     } catch (IOException e) {
       iterableApiCode = "Unable to parse Iterable API code";
     }
+    String errorType = isRetriable ? "RetriableError" : "NonRetriableError";
     String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     String url = response.raw().request().url().encodedPath();
     String httpStatus = String.valueOf(response.code());
+
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("errorType", "RetriableError");
+    logMessage.put("errorType", errorType);
     logMessage.put("awsRequestId", awsRequestId);
-    logMessage.put("message", "Received an error HTTP status from the Iterable API");
+    logMessage.put("mParticleEventId", requestId);
+    logMessage.put("message", "Received a retriable HTTP error status code from the Iterable API");
     logMessage.put("url", url);
     logMessage.put("httpStatus", httpStatus);
     logMessage.put("iterableApiCode", iterableApiCode);
-    logMessage.put("mParticleEventId", requestId);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
-  public static void logIterableApiTimeout(String url, UUID mparticleEventId, String awsRequestId) {
+  public void logIterableApiTimeout(String url, UUID mparticleEventId) {
     String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "RetriableError");
     logMessage.put("awsRequestId", awsRequestId);
+    logMessage.put("mparticleEventId", eventIdString);
     logMessage.put("message", "Encountered a timeout while connecting to the Iterable API");
     logMessage.put("url", url);
-    logMessage.put("mparticleEventId", eventIdString);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
-  public static void logNonRetriableError(String message, String awsRequestId) {
+  public void logNonRetriableError(String message, UUID mparticleEventId) {
+    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "NonRetriable");
     logMessage.put("awsRequestId", awsRequestId);
+    logMessage.put("mparticleEventId", eventIdString);
+    logMessage.put("message", message);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
-  public static void logUnexpectedError(Exception e, String awsRequestId) {
+  public void logUnexpectedError(Exception e) {
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "UnexpectedError");
     logMessage.put("awsRequestId", awsRequestId);
@@ -78,11 +87,19 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  public static void logMessage(String message, String awsRequestId) {
+  public void logMessage(String message) {
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("message", message);
     logMessage.put("awsRequestId", awsRequestId);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
+  }
+
+  public String getAwsRequestId() {
+    return awsRequestId;
+  }
+
+  public void setAwsRequestId(String id) {
+    awsRequestId = id;
   }
 }

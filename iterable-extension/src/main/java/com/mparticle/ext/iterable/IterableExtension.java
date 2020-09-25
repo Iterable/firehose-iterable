@@ -31,9 +31,13 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
-    static Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
-    static String awsRequestId = "";
+    public static final Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
     IterableService iterableService = IterableService.newInstance();
+    IterableExtensionLogger logger;
+
+    public IterableExtension(IterableExtensionLogger logger) {
+        this.logger = logger;
+    }
 
     @Override
     public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
@@ -46,6 +50,7 @@ public class IterableExtension extends MessageProcessor {
         Collections.sort(
                 request.getEvents(),
                 (a, b) -> a.getTimestamp() > b.getTimestamp() ? 1 : a.getTimestamp() == b.getTimestamp() ? 0 : -1
+
         );
         insertPlaceholderEmail(request);
         updateUser(request);
@@ -70,7 +75,7 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        IterableExtensionLogger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.", awsRequestId);
+                        logger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                         return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
@@ -160,7 +165,7 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            IterableExtensionLogger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.", awsRequestId);
+            logger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.");
             return;
         }
 
@@ -173,7 +178,7 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            IterableExtensionLogger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.", awsRequestId);
+            logger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
             return;
         }
 
@@ -356,7 +361,7 @@ public class IterableExtension extends MessageProcessor {
      *
      * Also see: https://support.iterable.com/hc/en-us/articles/208499956-Creating-user-profiles-without-an-email-address
      */
-    static String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
+    String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
         String id = null;
         if (shouldUseMPID(request.getAccount())) {
             id = request.getMpId();
@@ -422,7 +427,7 @@ public class IterableExtension extends MessageProcessor {
 
         if (isEmpty(id)) {
             // This error should stop processing for the entire batch.
-            IterableExtensionLogger.logNonRetriableError("Unable to send user data to Iterable - no email and unable to construct placeholder.", awsRequestId);
+            logger.logNonRetriableError("Unable to send user data to Iterable - no email and unable to construct placeholder.", request.getId());
             throw new NonRetriableError();
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
@@ -599,7 +604,7 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                IterableExtensionLogger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.", awsRequestId);
+                logger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
                 return;
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -741,35 +746,37 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
+    void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableExtensionLogger.logIterableApiError(response, eventId, awsRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
+                logger.logIterableApiError(response, eventId, true);
                 throw new RetriableError();
             }
+            logger.logIterableApiError(response, eventId, false);
         }
     }
 
-    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
+    void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
-            IterableExtensionLogger.logIterableApiError(response, audienceRequestId, awsRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
+                logger.logIterableApiError(response, audienceRequestId, true);
                 throw new RetriableError();
             }
+            logger.logIterableApiError(response, audienceRequestId, false);
         }
         boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
-            IterableExtensionLogger.logMessage(
-                    "List subscribe or unsubscribe request failed count: " + response.body().failCount, awsRequestId);
+            logger.logMessage(
+                    "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }
 
-    static <T> Response<T> makeIterableRequest(Call<T> call, UUID requestId) throws IOException {
+    <T> Response<T> makeIterableRequest(Call<T> call, UUID requestId) throws IOException {
         try {
             return call.execute();
         } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logIterableApiTimeout(call.request().url().encodedPath(), requestId, awsRequestId);
+            logger.logIterableApiTimeout(call.request().url().encodedPath(), requestId);
             throw new RetriableError();
         }
     }
