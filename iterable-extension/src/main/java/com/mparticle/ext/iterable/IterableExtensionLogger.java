@@ -2,7 +2,7 @@ package com.mparticle.ext.iterable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.mparticle.iterable.IterableApiResponse;
+import okhttp3.*;
 import retrofit2.Response;
 
 import java.io.IOException;
@@ -13,21 +13,36 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * A utility class for writing logs to the Lambda log stream. All static methods
- * write a JSON object to Standard Output where it can be queried in Cloudwatch.
- * Every log message contains the "awsRequestId" in order to connect each log
- * statements from a given invocation.
+ * A utility class for writing logs to the Lambda log stream. All static methods write a JSON object
+ * to Standard Output where it can be queried in Cloudwatch. Every log message contains the
+ * "awsRequestId" in order to connect each log statements from a given invocation.
  */
 public class IterableExtensionLogger {
 
   private static final Gson gson = new GsonBuilder().create();
+  private static final OkHttpClient httpClient = new OkHttpClient();
+  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/test/";
   private String awsRequestId;
+  private String mparticleBatch;
 
   public IterableExtensionLogger(String awsRequestId) {
     this.awsRequestId = awsRequestId;
   }
 
-  public void logIterableApiError(Response<?> response, UUID mparticleEventId, Boolean isRetriable) {
+  public void logIterableApiError(retrofit2.Call<?> preparedCall,
+                                  Response<?> response, UUID mparticleEventId, Boolean isRetriable) {
+    Map<String, String> blobbyLogMessage = new HashMap<>();
+    blobbyLogMessage.put("mParticleBatch", mparticleBatch);
+    blobbyLogMessage.put("request", preparedCall.request().body().toString());
+    String responseBody;
+    try {
+      responseBody = response.errorBody().string();
+    } catch (IOException e ) {
+      responseBody = "Error";
+    }
+    blobbyLogMessage.put("response", responseBody);
+    logToBlobby(blobbyLogMessage);
+
     String errorType = isRetriable ? "RetriableError" : "NonRetriableError";
     String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     String url = response.raw().request().url().encodedPath();
@@ -92,5 +107,27 @@ public class IterableExtensionLogger {
 
   public void setAwsRequestId(String id) {
     awsRequestId = id;
+  }
+
+  public String getMparticleBatch() {
+    return mparticleBatch;
+  }
+
+  public void setMparticleBatch(String mparticleBatch) {
+    this.mparticleBatch = mparticleBatch;
+  }
+
+  private static String logToBlobby(Map<String, String> message) {
+    RequestBody body = RequestBody.create(MediaType.parse("application/json"), gson.toJson(message));
+    Request request = new Request.Builder().url(BLOBBY_URL).post(body).build();
+    okhttp3.Call call = httpClient.newCall(request);
+    String blobbyId;
+    try {
+      okhttp3.Response response = call.execute();
+      blobbyId = response.body().string();
+    } catch (IOException e) {
+      blobbyId = "Error";
+    }
+    return blobbyId;
   }
 }

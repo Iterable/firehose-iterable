@@ -24,6 +24,7 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
 
     try {
       String inputString = IOUtils.toString(input, "UTF-8");
+      logger.setMparticleBatch(inputString);
       Message request = parseQueueTrigger(inputString);
       Message response = processor.processMessage(request);
       serializer.serialize(output, response);

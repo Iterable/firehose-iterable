@@ -758,7 +758,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testGetPlaceholderEmailNoEnvironmentOrStamp() throws Exception {
+    public void testGetPlaceholderEmailNoEnvironmentOrStamp() {
         EventProcessingRequest request = createEventProcessingRequest();
         request.setRuntimeEnvironment(null);
         request.setDeviceApplicationStamp(null);
@@ -915,8 +915,8 @@ public class IterableExtensionTest {
     public void testHandleIterableResponseSuccess() throws RetriableError {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
-
-        testExtension.handleIterableResponse(testSuccessResponse,
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
+        testExtension.handleIterableResponse(call, testSuccessResponse,
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         assertEquals("A success response shouldn't log", "", outContent.toString());
         System.setOut(System.out);
@@ -926,10 +926,11 @@ public class IterableExtensionTest {
     public void testHandleIterableResponseLogsRetriableError() {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
         Response errorResponse = createErrorResponse(429, "test");
 
         try {
-            testExtension.handleIterableResponse(errorResponse,
+            testExtension.handleIterableResponse(call, errorResponse,
                     UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         } catch (RetriableError e) {
             // ignored
@@ -944,8 +945,9 @@ public class IterableExtensionTest {
     public void testHandleIterableResponseLogsNonRetriableError() throws RetriableError {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
         Response errorResponse = createErrorResponse(400, "test");
-        testExtension.handleIterableResponse(errorResponse,
+        testExtension.handleIterableResponse(call, errorResponse,
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         Map<String, String> logMessage = gson.fromJson(outContent.toString(), Map.class);
         assertEquals("NonRetriableError", logMessage.get("errorType") );
@@ -954,50 +956,55 @@ public class IterableExtensionTest {
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableResponseWith429() throws RetriableError {
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableResponse(itbl492, UUID.randomUUID());
+        testExtension.handleIterableResponse(call, itbl492, UUID.randomUUID());
     }
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableResponseWith502() throws RetriableError {
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
         Response itbl502 = Response.error(502, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableResponse(itbl502, UUID.randomUUID());
+        testExtension.handleIterableResponse(call, itbl502, UUID.randomUUID());
     }
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableResponseWith504() throws RetriableError {
+        Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
         Response itbl504 = Response.error(504, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableResponse(itbl504, UUID.randomUUID());
+        testExtension.handleIterableResponse(call, itbl504, UUID.randomUUID());
     }
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableListResponseWith429() throws RetriableError {
+        Call<ListResponse> call = testExtension.iterableService.listSubscribe("foo", new SubscribeRequest());
         Response itbl492 = Response.error(429, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableListResponse(itbl492, UUID.randomUUID());
+        testExtension.handleIterableListResponse(call, itbl492, UUID.randomUUID());
     }
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableListResponseWith502() throws RetriableError {
+        Call<ListResponse> call = testExtension.iterableService.listSubscribe("foo", new SubscribeRequest());
         Response itbl502 = Response.error(502, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableListResponse(itbl502, UUID.randomUUID());
+        testExtension.handleIterableListResponse(call, itbl502, UUID.randomUUID());
     }
 
     @Test(expected = RetriableError.class)
     public void testHandleIterableListResponseWith504() throws RetriableError {
+        Call<ListResponse> call = testExtension.iterableService.listSubscribe("foo", new SubscribeRequest());
         Response itbl504 = Response.error(504, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), "{}"));
-        testExtension.handleIterableListResponse(itbl504, UUID.randomUUID());
+        testExtension.handleIterableListResponse(call, itbl504, UUID.randomUUID());
     }
 
     @Test
     public void testMakeIterableRequestWithSuccess() throws IOException {
         Call call = createCallMockWithSuccessResponse();
-
         testExtension.makeIterableRequest(call, UUID.randomUUID());
         Mockito.verify(call).execute();
     }
