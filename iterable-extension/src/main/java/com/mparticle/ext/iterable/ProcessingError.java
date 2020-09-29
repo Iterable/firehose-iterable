@@ -5,13 +5,13 @@ import java.io.IOException;
 /**
  * Exception thrown when batch processing fails and should not be retried.
  */
-public class NonRetriableError extends IOException {
+public class ProcessingError extends IOException {
 
-    public NonRetriableError() {
+    public ProcessingError() {
         super();
     }
 
-    public NonRetriableError(String message) {
+    public ProcessingError(String message) {
         super(message);
     }
 }

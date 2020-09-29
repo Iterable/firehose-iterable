@@ -923,7 +923,7 @@ public class IterableExtensionTest {
     }
 
     @Test
-    public void testHandleIterableResponseLogsRetriableError() {
+    public void testHandleIterableResponseLogsRetriableHTTPError() {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
         Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
@@ -936,13 +936,13 @@ public class IterableExtensionTest {
             // ignored
         } finally {
             Map<String, String> logMessage = gson.fromJson(outContent.toString(), Map.class);
-            assertEquals("RetriableError", logMessage.get("errorType") );
+            assertEquals(testLogger.RETRIABLE_HTTP_ERROR, logMessage.get("errorType"));
             System.setOut(System.out);
         }
     }
 
     @Test
-    public void testHandleIterableResponseLogsNonRetriableError() throws RetriableError {
+    public void testHandleIterableResponseLogsNonRetriableHTTPError() throws RetriableError {
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
         Call<IterableApiResponse> call = testExtension.iterableService.track("foo", new TrackRequest());
@@ -950,7 +950,7 @@ public class IterableExtensionTest {
         testExtension.handleIterableResponse(call, errorResponse,
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
         Map<String, String> logMessage = gson.fromJson(outContent.toString(), Map.class);
-        assertEquals("NonRetriableError", logMessage.get("errorType") );
+        assertEquals(testLogger.NON_RETRIABLE_HTTP_ERROR, logMessage.get("errorType"));
         System.setOut(System.out);
     }
 

@@ -427,8 +427,8 @@ public class IterableExtension extends MessageProcessor {
 
         if (isEmpty(id)) {
             // This error should stop processing for the entire batch.
-            logger.logNonRetriableError("Unable to send user data to Iterable - no email and unable to construct placeholder.", request.getId());
-            throw new NonRetriableError();
+            logger.logProcessingError("Unable to send user data to Iterable - no email and unable to construct placeholder.", request.getId());
+            throw new ProcessingError();
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
     }

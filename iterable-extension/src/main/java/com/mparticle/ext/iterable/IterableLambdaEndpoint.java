@@ -28,13 +28,14 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       Message request = parseQueueTrigger(inputString);
       Message response = extension.processMessage(request);
       serializer.serialize(output, response);
-    } catch (NonRetriableError e) {
-      logger.logMessage("Invocation terminated by a NonRetriableError");
+    } catch (ProcessingError e) {
+      logger.logMessage("Invocation terminated by a " + logger.PROCESSING_ERROR);
     } catch (RetriableError e) {
-      logger.logMessage("Invocation terminated by a RetriableError");
+      logger.logMessage("Invocation terminated by a " + logger.RETRIABLE_HTTP_ERROR);
+      // When an exception is thrown, the current message isn't deleted from the queue and will be retried.
       throw e;
     } catch (Exception e) {
-      logger.logMessage("Invocation terminated by an UnexpectedError");
+      logger.logMessage("Invocation terminated by an " + logger.UNEXPECTED_ERROR);
       logger.logUnexpectedError(e);
     }
   }

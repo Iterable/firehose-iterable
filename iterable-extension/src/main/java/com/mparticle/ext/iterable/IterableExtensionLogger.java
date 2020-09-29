@@ -19,6 +19,10 @@ import java.util.UUID;
  */
 public class IterableExtensionLogger {
 
+  public static final String RETRIABLE_HTTP_ERROR = "RetriableHTTPError";
+  public static final String NON_RETRIABLE_HTTP_ERROR = "NonRetriableHTTPError";
+  public static final String PROCESSING_ERROR = "ProcessingError";
+  public static final String UNEXPECTED_ERROR = "UnexpectedError";
   private static final Gson gson = new GsonBuilder().create();
   private static final OkHttpClient httpClient = new OkHttpClient();
   private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/test/";
@@ -43,8 +47,8 @@ public class IterableExtensionLogger {
     blobbyLogMessage.put("response", responseBody);
     String blobbyId = logToBlobby(blobbyLogMessage);
 
-    String errorType = isRetriable ? "RetriableError" : "NonRetriableError";
-    String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
+    String errorType = isRetriable ? RETRIABLE_HTTP_ERROR : NON_RETRIABLE_HTTP_ERROR;
+    String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Error";
     String url = response.raw().request().url().encodedPath();
     String httpStatus = String.valueOf(response.code());
 
@@ -61,9 +65,9 @@ public class IterableExtensionLogger {
   }
 
   public void logIterableApiTimeout(String url, UUID mparticleEventId) {
-    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
+    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Error";
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("errorType", "RetriableError");
+    logMessage.put("errorType", RETRIABLE_HTTP_ERROR);
     logMessage.put("awsRequestId", awsRequestId);
     logMessage.put("mparticleEventId", eventIdString);
     logMessage.put("message", "Encountered a timeout while connecting to the Iterable API");
@@ -72,14 +76,14 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  public void logNonRetriableError(String message, UUID mparticleEventId) {
+  public void logProcessingError(String message, UUID mparticleEventId) {
     Map<String, String> blobbyLogMessage = new HashMap<>();
     blobbyLogMessage.put("mParticleBatch", mparticleBatch);
     String blobbyId = logToBlobby(blobbyLogMessage);
 
-    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
+    String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Error";
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("errorType", "NonRetriable");
+    logMessage.put("errorType", PROCESSING_ERROR);
     logMessage.put("awsRequestId", awsRequestId);
     logMessage.put("mparticleEventId", eventIdString);
     logMessage.put("blobbyId", blobbyId);
@@ -94,7 +98,7 @@ public class IterableExtensionLogger {
     String blobbyId = logToBlobby(blobbyLogMessage);
 
     Map<String, String> logMessage = new HashMap<>();
-    logMessage.put("errorType", "UnexpectedError");
+    logMessage.put("errorType", UNEXPECTED_ERROR);
     logMessage.put("awsRequestId", awsRequestId);
     logMessage.put("blobbyId", blobbyId);
     StringWriter sw = new StringWriter();
