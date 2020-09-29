@@ -201,22 +201,4 @@ public class IterableServiceTest {
         assertTrue("Iterable response was not successful:\n" + response.body().toString(), response.body().isSuccess());
 
     }
-
-    @Test
-    public void testParseIterableError() throws IOException {
-        Response testErrorResponse = Response.error(400, ResponseBody.create(
-                MediaType.parse("application/json; charset=utf-8"), ERROR_JSON));
-        IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
-        assertEquals("BadApiKey", error.code);
-        assertEquals("No API key found on request", error.msg);
-        assertEquals("45.29.69.159", error.params.get("ip"));
-    }
-
-    @Test(expected = IOException.class)
-    public void testParseMalformedIterableError() throws IOException {
-        Response testErrorResponse = Response.error(400, ResponseBody.create(
-                MediaType.parse("application/json; charset=utf-8"), "<p>that's not JSON</p>"));
-        IterableApiResponse error = IterableErrorHandler.parseError(testErrorResponse);
-        assertNotNull(error);
-    }
 }

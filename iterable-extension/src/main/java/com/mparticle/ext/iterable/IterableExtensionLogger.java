@@ -3,7 +3,6 @@ package com.mparticle.ext.iterable;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mparticle.iterable.IterableApiResponse;
-import com.mparticle.iterable.IterableErrorHandler;
 import retrofit2.Response;
 
 import java.io.IOException;
@@ -29,13 +28,6 @@ public class IterableExtensionLogger {
   }
 
   public void logIterableApiError(Response<?> response, UUID mparticleEventId, Boolean isRetriable) {
-    String iterableApiCode = null;
-    try {
-      IterableApiResponse errorBody = IterableErrorHandler.parseError(response);
-      iterableApiCode = errorBody.code;
-    } catch (IOException e) {
-      iterableApiCode = "Unable to parse Iterable API code";
-    }
     String errorType = isRetriable ? "RetriableError" : "NonRetriableError";
     String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     String url = response.raw().request().url().encodedPath();
@@ -48,7 +40,6 @@ public class IterableExtensionLogger {
     logMessage.put("message", "Received a retriable HTTP error status code from the Iterable API");
     logMessage.put("url", url);
     logMessage.put("httpStatus", httpStatus);
-    logMessage.put("iterableApiCode", iterableApiCode);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
