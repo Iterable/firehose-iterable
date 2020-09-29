@@ -20,13 +20,13 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
     IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId());
-    IterableExtension processor = new IterableExtension(logger);
+    IterableExtension extension = new IterableExtension(logger);
 
     try {
       String inputString = IOUtils.toString(input, "UTF-8");
       logger.setMparticleBatch(inputString);
       Message request = parseQueueTrigger(inputString);
-      Message response = processor.processMessage(request);
+      Message response = extension.processMessage(request);
       serializer.serialize(output, response);
     } catch (NonRetriableError e) {
       logger.logMessage("Invocation terminated by a NonRetriableError");

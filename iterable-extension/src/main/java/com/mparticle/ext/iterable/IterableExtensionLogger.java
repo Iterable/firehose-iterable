@@ -41,7 +41,7 @@ public class IterableExtensionLogger {
       responseBody = "Error";
     }
     blobbyLogMessage.put("response", responseBody);
-    logToBlobby(blobbyLogMessage);
+    String blobbyId = logToBlobby(blobbyLogMessage);
 
     String errorType = isRetriable ? "RetriableError" : "NonRetriableError";
     String requestId = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
@@ -52,7 +52,8 @@ public class IterableExtensionLogger {
     logMessage.put("errorType", errorType);
     logMessage.put("awsRequestId", awsRequestId);
     logMessage.put("mParticleEventId", requestId);
-    logMessage.put("message", "Received a retriable HTTP error status code from the Iterable API");
+    logMessage.put("blobbyId", blobbyId);
+    logMessage.put("message", "Received an error HTTP status code from the Iterable API");
     logMessage.put("url", url);
     logMessage.put("httpStatus", httpStatus);
     String messageJson = gson.toJson(logMessage);
@@ -72,20 +73,30 @@ public class IterableExtensionLogger {
   }
 
   public void logNonRetriableError(String message, UUID mparticleEventId) {
+    Map<String, String> blobbyLogMessage = new HashMap<>();
+    blobbyLogMessage.put("mParticleBatch", mparticleBatch);
+    String blobbyId = logToBlobby(blobbyLogMessage);
+
     String eventIdString = mparticleEventId != null ? mparticleEventId.toString() : "Unavailable";
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "NonRetriable");
     logMessage.put("awsRequestId", awsRequestId);
     logMessage.put("mparticleEventId", eventIdString);
+    logMessage.put("blobbyId", blobbyId);
     logMessage.put("message", message);
     String messageJson = gson.toJson(logMessage);
     System.out.println(messageJson);
   }
 
   public void logUnexpectedError(Exception e) {
+    Map<String, String> blobbyLogMessage = new HashMap<>();
+    blobbyLogMessage.put("mParticleBatch", mparticleBatch);
+    String blobbyId = logToBlobby(blobbyLogMessage);
+
     Map<String, String> logMessage = new HashMap<>();
     logMessage.put("errorType", "UnexpectedError");
     logMessage.put("awsRequestId", awsRequestId);
+    logMessage.put("blobbyId", blobbyId);
     StringWriter sw = new StringWriter();
     e.printStackTrace(new PrintWriter(sw));
     logMessage.put("message", sw.toString());
@@ -125,7 +136,7 @@ public class IterableExtensionLogger {
     try {
       okhttp3.Response response = call.execute();
       blobbyId = response.body().string();
-    } catch (IOException e) {
+    } catch (Exception e) {
       blobbyId = "Error";
     }
     return blobbyId;
