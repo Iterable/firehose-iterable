@@ -32,7 +32,7 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
       logger.logMessage("Invocation terminated by a " + logger.PROCESSING_ERROR);
     } catch (RetriableError e) {
       logger.logMessage("Invocation terminated by a " + logger.RETRIABLE_HTTP_ERROR);
-      // When an exception is thrown, the current message isn't deleted from the queue and will be retried.
+      // When an unhandled exception occurs, the current message isn't deleted from the queue and will be automatically retried.
       throw e;
     } catch (Exception e) {
       logger.logMessage("Invocation terminated by an " + logger.UNEXPECTED_ERROR);

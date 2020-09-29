@@ -1064,16 +1064,4 @@ public class IterableExtensionTest {
         return Response.error(httpCode, ResponseBody.create(
                 MediaType.parse("application/json; charset=utf-8"), String.format("{code:\"%s\"}", apiCode)));
     }
-
-    @Test
-    public void tempTest() {
-        IterableExtensionLogger logger = new IterableExtensionLogger("hi");
-        try {
-            throw new ArithmeticException("divided by 0");
-        } catch (ArithmeticException e ) {
-            System.out.println("error");
-            logger.logUnexpectedError(e);
-        }
-    }
 }
-
