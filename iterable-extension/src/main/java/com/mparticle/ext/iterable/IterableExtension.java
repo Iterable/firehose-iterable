@@ -31,8 +31,13 @@ public class IterableExtension extends MessageProcessor {
     public static final String PLACEHOLDER_EMAIL_DOMAIN = "@placeholder.email";
     public static final String MPARTICLE_RESERVED_PHONE_ATTR = "$Mobile";
     public static final String ITERABLE_RESERVED_PHONE_ATTR = "phoneNumber";
-    static Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
+    public static final Set<Integer> RETRIABLE_HTTP_STATUS_SET = new HashSet<>(Arrays.asList(429, 502, 504));
     IterableService iterableService = IterableService.newInstance();
+    IterableExtensionLogger logger;
+
+    public IterableExtension(IterableExtensionLogger logger) {
+        this.logger = logger;
+    }
 
     @Override
     public ModuleRegistrationResponse processRegistrationRequest(ModuleRegistrationRequest request) {
@@ -45,6 +50,7 @@ public class IterableExtension extends MessageProcessor {
         Collections.sort(
                 request.getEvents(),
                 (a, b) -> a.getTimestamp() > b.getTimestamp() ? 1 : a.getTimestamp() == b.getTimestamp() ? 0 : -1
+
         );
         insertPlaceholderEmail(request);
         updateUser(request);
@@ -69,7 +75,7 @@ public class IterableExtension extends MessageProcessor {
                 if (event.getPayload() != null && processingRequest.getUserIdentities() != null) {
                     addUserIdentitiesToRequest(request, processingRequest);
                     if (request.email == null && request.userId == null) {
-                        IterableExtensionLogger.logError("Unable to process PushMessageOpenEvent - user has no email or customer id.");
+                        logger.logMessage("Unable to process PushMessageOpenEvent - user has no email or customer id.");
                         return;
                     }
                     ObjectMapper mapper = new ObjectMapper();
@@ -92,7 +98,7 @@ public class IterableExtension extends MessageProcessor {
                         request.createdAt = (int) (event.getTimestamp() / 1000.0);
                         Call<IterableApiResponse> preparedCall = iterableService.trackPushOpen(getApiKey(processingRequest), request);
                         Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-                        handleIterableResponse(response, event.getId());
+                        handleIterableResponse(preparedCall, response, event.getId());
                     }
                 }
             }
@@ -159,7 +165,7 @@ public class IterableExtension extends MessageProcessor {
             request.device.platform = Device.PLATFORM_GCM;
             request.device.applicationName = event.getRequest().getAccount().getAccountSettings().get(SETTING_GCM_NAME_KEY);
         } else {
-            IterableExtensionLogger.logError("Cannot process push subscription event for unknown RuntimeEnvironment type.");
+            logger.logMessage("Cannot process push subscription event for unknown RuntimeEnvironment type.");
             return;
         }
 
@@ -172,13 +178,13 @@ public class IterableExtension extends MessageProcessor {
                     .get();
             request.email = email.getValue();
         } catch (NoSuchElementException e) {
-            IterableExtensionLogger.logError("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
+            logger.logMessage("Unable to construct Iterable RegisterDeviceTokenRequest - no user email.");
             return;
         }
 
         Call<IterableApiResponse> preparedCall = iterableService.registerToken(getApiKey(event), request);
         Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-        handleIterableResponse(response, event.getId());
+        handleIterableResponse(preparedCall, response, event.getId());
     }
 
     void updateUser(EventProcessingRequest request) throws IOException {
@@ -211,7 +217,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Call<IterableApiResponse> preparedCall = iterableService.updateEmail(getApiKey(request), updateEmailRequest);
                 Response<IterableApiResponse> response = makeIterableRequest(preparedCall, changeEvent.getId());
-                handleIterableResponse(response, changeEvent.getId());
+                handleIterableResponse(preparedCall, response, changeEvent.getId());
             }
 
             //convert from old to new email
@@ -222,7 +228,7 @@ public class IterableExtension extends MessageProcessor {
                 updateEmailRequest.newEmail = changeEvent.getAdded().get(0).getValue();
                 Call<IterableApiResponse> preparedCall = iterableService.updateEmail(getApiKey(request), updateEmailRequest);
                 Response<IterableApiResponse> response = makeIterableRequest(preparedCall, changeEvent.getId());
-                handleIterableResponse(response, changeEvent.getId());
+                handleIterableResponse(preparedCall, response, changeEvent.getId());
             }
         }
 
@@ -233,7 +239,7 @@ public class IterableExtension extends MessageProcessor {
                 userUpdateRequest.dataFields = convertAttributes(request.getUserAttributes(), shouldCoerceStrings(request));
                 Call<IterableApiResponse> preparedCall = iterableService.userUpdate(getApiKey(request), userUpdateRequest);
                 Response<IterableApiResponse> response = makeIterableRequest(preparedCall, request.getId());
-                handleIterableResponse(response, request.getId());
+                handleIterableResponse(preparedCall, response, request.getId());
             }
         }
     }
@@ -315,7 +321,7 @@ public class IterableExtension extends MessageProcessor {
 
             Call<IterableApiResponse> preparedCall = iterableService.trackPurchase(getApiKey(event), purchaseRequest);
             Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-            handleIterableResponse(response, event.getId());
+            handleIterableResponse(preparedCall, response, event.getId());
         }
     }
 
@@ -355,7 +361,7 @@ public class IterableExtension extends MessageProcessor {
      *
      * Also see: https://support.iterable.com/hc/en-us/articles/208499956-Creating-user-profiles-without-an-email-address
      */
-    static String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
+    String getPlaceholderEmail(EventProcessingRequest request) throws IOException {
         String id = null;
         if (shouldUseMPID(request.getAccount())) {
             id = request.getMpId();
@@ -421,7 +427,8 @@ public class IterableExtension extends MessageProcessor {
 
         if (isEmpty(id)) {
             // This error should stop processing for the entire batch.
-            throw new IOException("Unable to send user to Iterable - no email and unable to construct placeholder.");
+            logger.logProcessingError("Unable to send user data to Iterable - no email and unable to construct placeholder.", request.getId());
+            throw new ProcessingError();
         }
         return id + PLACEHOLDER_EMAIL_DOMAIN;
     }
@@ -469,7 +476,7 @@ public class IterableExtension extends MessageProcessor {
         }
         Call<IterableApiResponse> preparedCall = iterableService.updateSubscriptions(getApiKey(event), updateRequest);
         Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-        handleIterableResponse(response, event.getId());
+        handleIterableResponse(preparedCall, response, event.getId());
         return true;
     }
 
@@ -537,7 +544,7 @@ public class IterableExtension extends MessageProcessor {
 
         Call<IterableApiResponse> preparedCall = iterableService.track(getApiKey(event), request);
         Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-        handleIterableResponse(response, event.getId());
+        handleIterableResponse(preparedCall, response, event.getId());
     }
 
     /**
@@ -597,7 +604,7 @@ public class IterableExtension extends MessageProcessor {
         if (event.getPayload() != null && event.getRequest().getUserIdentities() != null) {
             addUserIdentitiesToRequest(request, event.getRequest());
             if (request.email == null && request.userId == null) {
-                IterableExtensionLogger.logError("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
+                logger.logMessage("Unable to process PushMessageReceiptEvent - user has no email or customer id.");
                 return;
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -620,7 +627,7 @@ public class IterableExtension extends MessageProcessor {
                 request.createdAt = (int) (event.getTimestamp() / 1000.0);
                 Call<IterableApiResponse> preparedCall = iterableService.trackPushOpen(getApiKey(event), request);
                 Response<IterableApiResponse> response = makeIterableRequest(preparedCall, event.getId());
-                handleIterableResponse(response, event.getId());
+                handleIterableResponse(preparedCall, response, event.getId());
             }
         }
     }
@@ -693,7 +700,7 @@ public class IterableExtension extends MessageProcessor {
             subscribeRequest.subscribers = entry.getValue();
             Call<ListResponse> preparedCall = iterableService.listSubscribe(getApiKey(request), subscribeRequest);
             Response<ListResponse> response = makeIterableRequest(preparedCall, request.getId());
-            handleIterableListResponse(response, request.getId());
+            handleIterableListResponse(preparedCall, response, request.getId());
         }
 
         for (Map.Entry<Integer, List<ApiUser>> entry : removals.entrySet()) {
@@ -702,7 +709,7 @@ public class IterableExtension extends MessageProcessor {
             unsubscribeRequest.subscribers = entry.getValue();
             Call<ListResponse> preparedCall = iterableService.listUnsubscribe(getApiKey(request), unsubscribeRequest);
             Response<ListResponse> response = makeIterableRequest(preparedCall, request.getId());
-            handleIterableListResponse(response, request.getId());
+            handleIterableListResponse(preparedCall, response, request.getId());
     }
         return new AudienceMembershipChangeResponse();
     }
@@ -739,35 +746,37 @@ public class IterableExtension extends MessageProcessor {
                 integrationAttributes.getOrDefault("Iterable.sdkVersion", null) != null;
     }
 
-    static void handleIterableResponse(Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
+    void handleIterableResponse(Call<IterableApiResponse> preparedCall, Response<IterableApiResponse> response, UUID eventId) throws RetriableError {
         boolean isResponseBodySuccess = response.body() != null && response.body().isSuccess();
         if (!response.isSuccessful() || !isResponseBodySuccess) {
-            IterableExtensionLogger.logApiError(response, eventId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
+                logger.logIterableApiError(preparedCall, response, eventId, true);
                 throw new RetriableError();
             }
+            logger.logIterableApiError(preparedCall, response, eventId, false);
         }
     }
 
-    static void handleIterableListResponse(Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
+    void handleIterableListResponse(Call<ListResponse> preparedCall, Response<ListResponse> response, UUID audienceRequestId) throws RetriableError {
         if (!response.isSuccessful()) {
-            IterableExtensionLogger.logApiError(response, audienceRequestId);
             if (RETRIABLE_HTTP_STATUS_SET.contains(response.code())) {
+                logger.logIterableApiError(preparedCall, response, audienceRequestId, true);
                 throw new RetriableError();
             }
+            logger.logIterableApiError(preparedCall, response, audienceRequestId, false);
         }
         boolean hasFailures = response.body().failCount > 0;
         if (hasFailures) {
-            IterableExtensionLogger.logError(
+            logger.logMessage(
                     "List subscribe or unsubscribe request failed count: " + response.body().failCount);
         }
     }
 
-    static <T> Response<T> makeIterableRequest(Call<T> call, UUID requestId) throws IOException {
+    <T> Response<T> makeIterableRequest(Call<T> call, UUID requestId) throws IOException {
         try {
             return call.execute();
         } catch (java.net.SocketTimeoutException e) {
-            IterableExtensionLogger.logApiTimeout(call.request().url().encodedPath(), requestId);
+            logger.logIterableApiTimeout(call.request().url().encodedPath(), requestId);
             throw new RetriableError();
         }
     }
