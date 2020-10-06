@@ -125,12 +125,16 @@ public class IterableExtensionLogger {
     RequestBody body = RequestBody.create(MediaType.parse("application/json"), gson.toJson(message));
     Request request = new Request.Builder().url(BLOBBY_URL).post(body).build();
     okhttp3.Call call = httpClient.newCall(request);
+
     String blobbyId;
     try {
       okhttp3.Response response = call.execute();
       blobbyId = response.body().string();
     } catch (Exception e) {
-      blobbyId = e.getClass().getCanonicalName();
+      blobbyId = "Error";
+      StringWriter sw = new StringWriter();
+      e.printStackTrace(new PrintWriter(sw));
+      System.out.println(sw.toString());
     }
     return blobbyId;
   }
