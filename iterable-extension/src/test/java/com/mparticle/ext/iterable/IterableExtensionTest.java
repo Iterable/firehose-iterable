@@ -935,8 +935,7 @@ public class IterableExtensionTest {
         } catch (RetriableError e) {
             // ignored
         } finally {
-            Map<String, String> logMessage = gson.fromJson(outContent.toString(), Map.class);
-            assertEquals(testLogger.RETRIABLE_HTTP_ERROR, logMessage.get("errorType"));
+            assertTrue(outContent.toString().contains(testLogger.RETRIABLE_HTTP_ERROR));
             System.setOut(System.out);
         }
     }
@@ -949,8 +948,7 @@ public class IterableExtensionTest {
         Response errorResponse = createErrorResponse(400, "test");
         testExtension.handleIterableResponse(call, errorResponse,
                 UUID.fromString("d0567916-c2c7-11ea-b3de-0242ac130004"));
-        Map<String, String> logMessage = gson.fromJson(outContent.toString(), Map.class);
-        assertEquals(testLogger.NON_RETRIABLE_HTTP_ERROR, logMessage.get("errorType"));
+        assertTrue(outContent.toString().contains(testLogger.NON_RETRIABLE_HTTP_ERROR));
         System.setOut(System.out);
     }
 
