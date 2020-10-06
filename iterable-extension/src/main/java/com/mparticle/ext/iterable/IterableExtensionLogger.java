@@ -130,7 +130,7 @@ public class IterableExtensionLogger {
       okhttp3.Response response = call.execute();
       blobbyId = response.body().string();
     } catch (Exception e) {
-      blobbyId = "Error";
+      blobbyId = e.getClass().getCanonicalName();
     }
     return blobbyId;
   }
