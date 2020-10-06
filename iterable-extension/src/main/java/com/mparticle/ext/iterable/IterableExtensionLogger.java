@@ -117,18 +117,6 @@ public class IterableExtensionLogger {
     System.out.println(messageJson);
   }
 
-  public String getAwsRequestId() {
-    return awsRequestId;
-  }
-
-  public void setAwsRequestId(String id) {
-    awsRequestId = id;
-  }
-
-  public String getMparticleBatch() {
-    return mparticleBatch;
-  }
-
   public void setMparticleBatch(String mparticleBatch) {
     this.mparticleBatch = mparticleBatch;
   }
