@@ -26,7 +26,7 @@ public class IterableExtensionLogger {
   public static final String UNEXPECTED_ERROR = "UnexpectedError";
   private static final Gson gson = new GsonBuilder().create();
   private static final OkHttpClient httpClient = new OkHttpClient();
-  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/test/";
+  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/mparticle_logs";
   private String awsRequestId;
   private String mparticleBatch;
 
