@@ -17,7 +17,7 @@ import java.util.UUID;
 /**
  * A utility class for writing logs to the Lambda log stream. All static methods write a JSON object
  * to Standard Output where it can be queried in Cloudwatch. Every log message contains the
- * "awsRequestId" in order to connect each log statements from a given invocation. Logs containing
+ * "awsRequestId" in order to connect all log statements from a given invocation. Logs containing
  * PII are sent to Blobby. 
  */
 public class IterableExtensionLogger {
