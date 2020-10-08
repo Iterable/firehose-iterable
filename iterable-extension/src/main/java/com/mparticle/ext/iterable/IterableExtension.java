@@ -39,7 +39,10 @@ public class IterableExtension extends MessageProcessor {
         // Processing ModuleRegistrationRequests is handled by the Ingress Lambda.
         return new ModuleRegistrationResponse("Iterable", "1.6.0");
     }
-
+    /**
+     * When a MessageProcessor is given a batch of data/events, it will first call this method.
+     * This is a good time to do some setup.
+     */
     @Override
     public EventProcessingResponse processEventProcessingRequest(EventProcessingRequest request) throws IOException {
         Collections.sort(
@@ -117,7 +120,7 @@ public class IterableExtension extends MessageProcessor {
     /**
      * Verify that there's an email present, create a placeholder if not.
      *
-     * @param request
+     * @param request the mParticle request
      * @throws IOException
      */
     private void insertPlaceholderEmail(EventProcessingRequest request) throws IOException {
@@ -134,6 +137,14 @@ public class IterableExtension extends MessageProcessor {
         request.getUserIdentities().add(new UserIdentity(UserIdentity.Type.EMAIL, Identity.Encoding.RAW, placeholderEmail));
     }
 
+    /**
+     * Map mParticle PushSubscriptionEvent to Iterable RegisterDeviceTokenRequest.
+     *
+     * mParticle push_registration: https://docs.mparticle.com/developers/server/json-reference/#push_registration
+     * Iterable registerDeviceToken: https://api.iterable.com/api/docs#users_registerDeviceToken
+     *
+     * @param event the mParticle push subscription event
+     */
     @Override
     public void processPushSubscriptionEvent(PushSubscriptionEvent event) throws IOException {
         // Skip processing if the SDK is present - it registers tokens automatically
@@ -181,6 +192,15 @@ public class IterableExtension extends MessageProcessor {
         handleIterableResponse(response, event.getId());
     }
 
+    /**
+     * Collect user attributes from mParticle request and make Iterable UpdateEmailRequest and/or UserUpdateRequest.
+     *
+     * mParticle user_attributes: https://docs.mparticle.com/developers/server/json-reference/#user_attributes
+     * Iterable updateUser: https://api.iterable.com/api/docs#users_updateUser
+     * Iterable updateEmail: https://api.iterable.com/api/docs#users_updateEmail
+     *
+     * @param request the mParticle request
+     */
     void updateUser(EventProcessingRequest request) throws IOException {
         if (request.getEvents() != null) {
 
@@ -285,7 +305,7 @@ public class IterableExtension extends MessageProcessor {
     }
 
     /**
-     * Map an mParticle `purchase` product_action to Iterable's `trackPurchase` request.
+     * Map mParticle ProductActionEvent to Iterable TrackPurchaseRequest.
      *
      * mParticle product_action: https://docs.mparticle.com/developers/server/json-reference#product_action
      * Iterable trackPurchase: https://api.iterable.com/api/docs#commerce_trackPurchase
@@ -514,12 +534,13 @@ public class IterableExtension extends MessageProcessor {
     }
 
     /**
-     * Map an mParticle `custom_event` to Iterable's `track` request.
+     * Map mParticle CustomEvent to Iterable TrackRequest.
      *
      * mParticle custom_event: https://docs.mparticle.com/developers/server/json-reference/#custom_event
      * Iterable track: https://api.iterable.com/api/docs#events_track
      *
      * @param event the mParticle event
+     * @throws IOException
      */
     @Override
     public void processCustomEvent(CustomEvent event) throws IOException {
@@ -579,12 +600,13 @@ public class IterableExtension extends MessageProcessor {
     }
 
     /**
-     * Map mParticle `PushMessageReceiptEvent` to Iterable `trackPushOpen` request.
+     * Map mParticle PushMessageReceiptEvent to Iterable TrackPushOpenRequest.
      *
      * mParticle push_message event https://docs.mparticle.com/developers/server/json-reference#push_message
      * Iterable trackPushOpen request: https://api.iterable.com/api/docs#events_trackPushOpen
      *
      * @param event the mParticle event
+     * @throws IOException
      */
     @Override
     public void processPushMessageReceiptEvent(PushMessageReceiptEvent event) throws IOException {
@@ -634,7 +656,7 @@ public class IterableExtension extends MessageProcessor {
     }
 
     /**
-     * Map an mParticle `AudienceMembershipChangeRequest` to Iterable list `subscribe` and `unsubscribe` requests.
+     * Map mParticle AudienceMembershipChangeRequest to Iterable SubscribeRequests and UnsubscribeRequests.
      *
      * Each subscribe and unsubscribe request may contain multiple users if there are multiple
      * users being added or removed from the same list. No dataFields are sent with the users.
