@@ -1,6 +1,5 @@
 package com.mparticle.iterable;
 
-
 import java.util.Map;
 
 public class Device {

@@ -5,6 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueueMessageBody {
-  @JsonProperty(value = "body", required = true)
-  public String body;
+    @JsonProperty(value = "body", required = true)
+    public String body;
 }

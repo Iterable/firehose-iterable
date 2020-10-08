@@ -1,4 +1,7 @@
-apply plugin: 'java'
+plugins {
+    id 'java'
+    id 'com.github.sherter.google-java-format' version '0.8'
+}
 
 repositories {
     mavenLocal()
@@ -23,6 +26,12 @@ task buildZip(type: Zip) {
     into('lib') {
         from configurations.runtime
     }
+}
+
+tasks.verifyGoogleJavaFormat.ignoreFailures = true
+
+googleJavaFormat {
+    options style: 'AOSP'
 }
 
 build.dependsOn buildZip

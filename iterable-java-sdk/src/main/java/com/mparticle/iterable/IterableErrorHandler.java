@@ -3,9 +3,8 @@ package com.mparticle.iterable;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import retrofit2.Response;
-
 import java.io.IOException;
+import retrofit2.Response;
 
 public class IterableErrorHandler {
 
