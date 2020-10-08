@@ -5,16 +5,13 @@ import java.util.Map;
 public abstract class IterableRequest extends UserRequest {
 
     /**
-     *  Time event happened. Set to the time event was received if unspecified. Expects a unix timestamp.,
+     * Time event happened. Set to the time event was received if unspecified. Expects a unix
+     * timestamp.,
      */
     public Integer createdAt;
-    /**
-     *  Additional data associated with event (i.e. item id, item amount),
-     */
+    /** Additional data associated with event (i.e. item id, item amount), */
     public Map<String, Object> dataFields;
-    /**
-     * Campaign tied to conversion
-     */
+    /** Campaign tied to conversion */
     public Integer campaignId;
 
     public Integer templateId;
@@ -22,6 +19,4 @@ public abstract class IterableRequest extends UserRequest {
     public IterableRequest() {
         super();
     }
-
-
 }

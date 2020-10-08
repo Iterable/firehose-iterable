@@ -11,9 +11,8 @@ public class CommerceItem {
     public String description;
     public List<String> categories;
     public BigDecimal price;
-    //iterable will error if this is not present
+    // iterable will error if this is not present
     public Integer quantity = 1;
     public String imageUrl;
     public Map<String, Object> dataFields;
-
 }
