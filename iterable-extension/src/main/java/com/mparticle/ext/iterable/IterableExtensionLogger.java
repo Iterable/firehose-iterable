@@ -3,6 +3,8 @@ package com.mparticle.ext.iterable;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import okhttp3.*;
+import okio.Buffer;
+import okio.BufferedSink;
 import retrofit2.Response;
 
 import java.io.IOException;
@@ -26,7 +28,7 @@ public class IterableExtensionLogger {
   public static final String UNEXPECTED_ERROR = "UnexpectedError";
   private static final Gson gson = new GsonBuilder().create();
   private static final OkHttpClient httpClient = new OkHttpClient();
-  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/mparticle_logs";
+  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.c/mparticle_logs";
   private String awsRequestId;
   private String mparticleBatch;
 
@@ -37,15 +39,30 @@ public class IterableExtensionLogger {
   public void logIterableApiError(retrofit2.Call<?> preparedCall,
                                   Response<?> response, UUID mparticleEventId, Boolean isRetriable) {
     Map<String, String> blobbyLogMessage = new HashMap<>();
-    blobbyLogMessage.put("mParticleBatch", mparticleBatch);
-    blobbyLogMessage.put("request", preparedCall.request().body().toString());
+
+    String requestBody;
+    try {
+      Buffer buffer = new Buffer();
+      preparedCall.request().body().writeTo(buffer);
+      requestBody = buffer.readUtf8();
+    } catch (IOException e) {
+      StringWriter sw = new StringWriter();
+      e.printStackTrace(new PrintWriter(sw));
+      requestBody = sw.toString();
+    }
+
     String responseBody;
     try {
       responseBody = response.errorBody().string();
     } catch (IOException e ) {
-      responseBody = "Error";
+      StringWriter sw = new StringWriter();
+      e.printStackTrace(new PrintWriter(sw));
+      responseBody = sw.toString();
     }
+
+    blobbyLogMessage.put("request", requestBody);
     blobbyLogMessage.put("response", responseBody);
+    blobbyLogMessage.put("mParticleBatch", mparticleBatch);
     String blobbyId = logToBlobby(blobbyLogMessage);
 
     String errorType = isRetriable ? RETRIABLE_HTTP_ERROR : NON_RETRIABLE_HTTP_ERROR;
@@ -131,10 +148,9 @@ public class IterableExtensionLogger {
       okhttp3.Response response = call.execute();
       blobbyId = response.body().string();
     } catch (Exception e) {
-      blobbyId = "Error";
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
-      System.out.println(sw.toString());
+      blobbyId = sw.toString();
     }
     return blobbyId;
   }
