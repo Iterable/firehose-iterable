@@ -14,23 +14,29 @@ import java.io.OutputStream;
 public class IterableLambdaEndpoint implements RequestStreamHandler {
 
   static MessageSerializer serializer = new MessageSerializer();
-  static IterableExtension processor = new IterableExtension();
   static final ObjectMapper mapper = new ObjectMapper();
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
+    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId());
+    IterableExtension extension = new IterableExtension(logger);
+
     try {
       String inputString = IOUtils.toString(input, "UTF-8");
+      logger.setMparticleBatch(inputString);
       Message request = parseQueueTrigger(inputString);
-      Message response = processor.processMessage(request);
+      Message response = extension.processMessage(request);
       serializer.serialize(output, response);
+    } catch (ProcessingError e) {
+      logger.logMessage("Invocation terminated by a " + logger.PROCESSING_ERROR);
     } catch (RetriableError e) {
-      IterableExtensionLogger.logError("Processing terminated by a RetriableError");
+      logger.logMessage("Invocation terminated by a " + logger.RETRIABLE_HTTP_ERROR);
+      // When an unhandled exception occurs, the current message isn't deleted from the queue and will be automatically retried.
       throw e;
     } catch (Exception e) {
-      IterableExtensionLogger.logError("Processing terminated by An unexpected error");
-      e.printStackTrace(System.out);
+      logger.logMessage("Invocation terminated by an " + logger.UNEXPECTED_ERROR);
+      logger.logUnexpectedError(e);
     }
   }
 
