@@ -27,7 +27,7 @@ public class IngressQueueManager {
             SendMessageRequest.builder().queueUrl(queueUrl).messageBody(message).build();
 
     int attempt = 0;
-    while (attempt <= NUM_RETRIES) {
+    while (true) {
       attempt++;
       try {
         sqsClient.sendMessage(req);
@@ -35,8 +35,8 @@ public class IngressQueueManager {
       } catch (SdkClientException e) {
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
-        System.out.println("Failed attempt " + (attempt + 1) + " to upload message to SQS  \n" + sw.toString());
-        if (attempt == NUM_RETRIES - 1) {
+        System.out.println("Failed attempt " + attempt + " to upload message to SQS  \n" + sw.toString());
+        if (attempt == NUM_RETRIES) {
           throw e;
         }
       }
