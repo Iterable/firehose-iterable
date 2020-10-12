@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.Objects;
 
 public class IngressQueueManager {
-  public static final long CLIENT_TIMEOUT_SECONDS = 7L;
+  public static final long CLIENT_TIMEOUT_SECONDS = 10L;
   public static final int NUM_RETRIES = 5;
   private final SqsClient sqsClient;
   private final String queueUrl;
@@ -27,7 +27,7 @@ public class IngressQueueManager {
             SendMessageRequest.builder().queueUrl(queueUrl).messageBody(message).build();
 
     int attempt = 0;
-    while (attempt < NUM_RETRIES) {
+    while (attempt <= NUM_RETRIES) {
       attempt++;
       try {
         sqsClient.sendMessage(req);
