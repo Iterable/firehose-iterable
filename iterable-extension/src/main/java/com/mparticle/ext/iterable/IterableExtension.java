@@ -765,10 +765,10 @@ public class IterableExtension extends MessageProcessor {
             }
             logger.logIterableApiError(preparedCall, response, audienceRequestId, false);
         }
-        boolean hasFailures = response.body().failCount > 0;
-        if (hasFailures) {
+        int failCount = (response.body() == null) ? 0 : response.body().failCount;
+        if (failCount > 0) {
             logger.logMessage(
-                    "List subscribe or unsubscribe request failed count: " + response.body().failCount);
+                    "List subscribe or unsubscribe request failed count: " + failCount);
         }
     }
 
