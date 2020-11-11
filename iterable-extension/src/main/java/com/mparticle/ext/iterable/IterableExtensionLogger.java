@@ -2,12 +2,9 @@ package com.mparticle.ext.iterable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import okhttp3.*;
 import okio.Buffer;
-import okio.BufferedSink;
 import retrofit2.Response;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
