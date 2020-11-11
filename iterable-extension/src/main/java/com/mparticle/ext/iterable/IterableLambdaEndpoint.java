@@ -10,16 +10,18 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Blob;
 
 public class IterableLambdaEndpoint implements RequestStreamHandler {
 
-  static MessageSerializer serializer = new MessageSerializer();
+  static final MessageSerializer serializer = new MessageSerializer();
   static final ObjectMapper mapper = new ObjectMapper();
+  static final BlobbyClient blobbyClient = new BlobbyClient();
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
-    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId());
+    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId(), blobbyClient);
     IterableExtension extension = new IterableExtension(logger);
 
     try {
