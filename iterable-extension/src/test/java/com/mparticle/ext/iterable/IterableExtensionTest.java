@@ -50,7 +50,7 @@ public class IterableExtensionTest {
 
     @Before
     public void setup() {
-        testLogger = new IterableExtensionLogger("foo");
+        testLogger = new IterableExtensionLogger("foo", new BlobbyClient(), false);
         testExtension = new IterableExtension(testLogger);
         iterableServiceMock = Mockito.mock(IterableService.class);
         callMock = Mockito.mock(Call.class);

@@ -13,13 +13,14 @@ import java.io.OutputStream;
 
 public class IterableLambdaEndpoint implements RequestStreamHandler {
 
-  static MessageSerializer serializer = new MessageSerializer();
+  static final MessageSerializer serializer = new MessageSerializer();
   static final ObjectMapper mapper = new ObjectMapper();
+  static final BlobbyClient blobbyClient = new BlobbyClient();
 
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
-    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId());
+    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId(), blobbyClient, false);
     IterableExtension extension = new IterableExtension(logger);
 
     try {

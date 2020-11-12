@@ -2,12 +2,9 @@ package com.mparticle.ext.iterable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import okhttp3.*;
 import okio.Buffer;
-import okio.BufferedSink;
 import retrofit2.Response;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -27,13 +24,15 @@ public class IterableExtensionLogger {
   public static final String PROCESSING_ERROR = "ProcessingError";
   public static final String UNEXPECTED_ERROR = "UnexpectedError";
   private static final Gson gson = new GsonBuilder().create();
-  private static final OkHttpClient httpClient = new OkHttpClient();
-  private static final String BLOBBY_URL = "https://blobby.internal.prd-itbl.co/mparticle_logs";
+  private BlobbyClient blobbyClient;
+  private boolean hasBlobbyEnabled;
   private String awsRequestId;
   private String mparticleBatch;
 
-  public IterableExtensionLogger(String awsRequestId) {
+  public IterableExtensionLogger(String awsRequestId, BlobbyClient bc, boolean hasBlobbyEnabled) {
     this.awsRequestId = awsRequestId;
+    this.blobbyClient = bc;
+    this.hasBlobbyEnabled = hasBlobbyEnabled;
   }
 
   public void logIterableApiError(retrofit2.Call<?> preparedCall,
@@ -45,7 +44,7 @@ public class IterableExtensionLogger {
       Buffer buffer = new Buffer();
       preparedCall.request().body().writeTo(buffer);
       requestBody = buffer.readUtf8();
-    } catch (IOException e) {
+    } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
       requestBody = sw.toString();
@@ -54,7 +53,7 @@ public class IterableExtensionLogger {
     String responseBody;
     try {
       responseBody = response.errorBody().string();
-    } catch (IOException e ) {
+    } catch (Exception e ) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
       responseBody = sw.toString();
@@ -138,19 +137,18 @@ public class IterableExtensionLogger {
     this.mparticleBatch = mparticleBatch;
   }
 
-  private static String logToBlobby(Map<String, String> message) {
-    RequestBody body = RequestBody.create(MediaType.parse("application/json"), gson.toJson(message));
-    Request request = new Request.Builder().url(BLOBBY_URL).post(body).build();
-    okhttp3.Call call = httpClient.newCall(request);
-
+  private String logToBlobby(Map<String, String> message) {
     String blobbyId;
-    try {
-      okhttp3.Response response = call.execute();
-      blobbyId = response.body().string();
-    } catch (Exception e) {
-      StringWriter sw = new StringWriter();
-      e.printStackTrace(new PrintWriter(sw));
-      blobbyId = sw.toString();
+    if (hasBlobbyEnabled) {
+      try {
+        blobbyId = blobbyClient.log(gson.toJson(message));
+      } catch (Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        blobbyId = sw.toString();
+      }
+    } else {
+      blobbyId = "Logging to Blobby is currently disabled";
     }
     return blobbyId;
   }
