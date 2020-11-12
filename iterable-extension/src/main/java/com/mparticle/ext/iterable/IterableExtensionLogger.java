@@ -25,12 +25,14 @@ public class IterableExtensionLogger {
   public static final String UNEXPECTED_ERROR = "UnexpectedError";
   private static final Gson gson = new GsonBuilder().create();
   private BlobbyClient blobbyClient;
+  private boolean hasBlobbyEnabled;
   private String awsRequestId;
   private String mparticleBatch;
 
-  public IterableExtensionLogger(String awsRequestId, BlobbyClient bc) {
+  public IterableExtensionLogger(String awsRequestId, BlobbyClient bc, boolean hasBlobbyEnabled) {
     this.awsRequestId = awsRequestId;
     this.blobbyClient = bc;
+    this.hasBlobbyEnabled = hasBlobbyEnabled;
   }
 
   public void logIterableApiError(retrofit2.Call<?> preparedCall,
@@ -137,12 +139,16 @@ public class IterableExtensionLogger {
 
   private String logToBlobby(Map<String, String> message) {
     String blobbyId;
-    try {
-      blobbyId = blobbyClient.log(gson.toJson(message));
-    } catch (Exception e) {
-      StringWriter sw = new StringWriter();
-      e.printStackTrace(new PrintWriter(sw));
-      blobbyId = sw.toString();
+    if (hasBlobbyEnabled) {
+      try {
+        blobbyId = blobbyClient.log(gson.toJson(message));
+      } catch (Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        blobbyId = sw.toString();
+      }
+    } else {
+      blobbyId = "Logging to Blobby is currently disabled";
     }
     return blobbyId;
   }

@@ -32,7 +32,6 @@ public class IterableExtensionTest {
     private static final String TEST_API_KEY = "foo api key";
     private IterableExtension testExtension;
     private IterableExtensionLogger testLogger;
-    private BlobbyClient mockBlobbyClient;
     private IterableService iterableServiceMock;
     private Call callMock;
     private Audience testAudienceAddition1;
@@ -51,10 +50,7 @@ public class IterableExtensionTest {
 
     @Before
     public void setup() {
-        mockBlobbyClient = Mockito.mock(BlobbyClient.class);
-        Mockito.when(mockBlobbyClient.log(Mockito.anyString()))
-                .thenReturn("someId");
-        testLogger = new IterableExtensionLogger("foo", mockBlobbyClient);
+        testLogger = new IterableExtensionLogger("foo", new BlobbyClient(), false);
         testExtension = new IterableExtension(testLogger);
         iterableServiceMock = Mockito.mock(IterableService.class);
         callMock = Mockito.mock(Call.class);
