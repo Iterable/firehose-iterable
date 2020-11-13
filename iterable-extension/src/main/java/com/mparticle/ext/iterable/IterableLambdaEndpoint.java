@@ -20,7 +20,7 @@ public class IterableLambdaEndpoint implements RequestStreamHandler {
   @Override
   public void handleRequest(InputStream input, OutputStream output, Context context)
       throws RetriableError {
-    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId(), blobbyClient, false);
+    IterableExtensionLogger logger = new IterableExtensionLogger(context.getAwsRequestId(), blobbyClient, true);
     IterableExtension extension = new IterableExtension(logger);
 
     try {
