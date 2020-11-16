@@ -45,7 +45,16 @@ jobs:
         aws_region: us-east-1
         function_name: mparticle_sqs_to_api
         zip_file: iterable-extension/build/distributions/iterable-extension.zip
-      run: aws lambda update-function-code --region $aws_region --function-name $function_name --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}0 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}1 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}2 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}3 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}4 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}5 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}6 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}7 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}8 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
+      run: aws lambda update-function-code --region $aws_region --function-name ${function_name}9 --zip-file fileb://iterable-extension/build/distributions/iterable-extension.zip > /dev/null
     - name: Deploy IterableIngressExtension to production Lambda
       if: github.ref == 'refs/heads/master'
       env:
