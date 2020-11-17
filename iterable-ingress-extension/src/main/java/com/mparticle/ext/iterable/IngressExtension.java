@@ -111,6 +111,7 @@ public class IngressExtension extends MessageProcessor {
             Event.Type.PRODUCT_ACTION);
 
     eventProcessingRegistration.setSupportedEventTypes(supportedEventTypes);
+    eventProcessingRegistration.setMaxDataAgeHours(-1); // -1 will process all data regardless of age
     response.setEventProcessingRegistration(eventProcessingRegistration);
     AudienceProcessingRegistration audienceRegistration = new AudienceProcessingRegistration();
     audienceRegistration.setAccountSettings(audienceSettings);
